@@ -1,1 +1,1 @@
-print('Loaded')
+print(License)
