@@ -1399,7 +1399,7 @@ function Module:Window(Args)
                     }
                 }):Play()
 
-                task.spawn(Callback, Value)
+                task.spawn(pcall, Callback, Value)
             end
 
             function ToggleModule:SetValue(Value)
@@ -1684,8 +1684,11 @@ function Module:Window(Args)
             local Target = Textbox.TextBox
 
             Target.FocusLost:Connect(function()
-                Callback(Target.Text)
+                Value = Target.Text
+                Callback(Value)
             end)
+            
+            task.spawn(pcall, Callback, Value)
 
             TextboxModule.Row = Row.Row
             TextboxModule.Textbox = Textbox
@@ -2577,6 +2580,7 @@ function Module:Window(Args)
 
             UpdateOrder()
             DropdownModule:UpdateFooter()
+            task.spawn(pcall, Callback, Value)
 
             return DropdownModule
         end
