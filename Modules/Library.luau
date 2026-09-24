@@ -2584,6 +2584,21 @@ function Module:Window(Args)
 
             return DropdownModule
         end
+        
+        function TabModule:Banner()
+            local Banner_1 = Instance.new("ImageLabel")
+            local UICorner_1 = Instance.new("UICorner")
+
+            Banner_1.BackgroundTransparency = 1
+            Banner_1.Name = "Banner"
+            Banner_1.Parent = Scrolling
+            Banner_1.Size = UDim2.new(1, 0, 0, 230)
+            Banner_1.Image = "rbxassetid://102933007142060"
+            Banner_1.ScaleType = Enum.ScaleType.Crop
+
+            UICorner_1.CornerRadius = UDim.new(0, 5)
+            UICorner_1.Parent = Banner_1
+        end
 
         return TabModule
     end
