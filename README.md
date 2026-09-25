@@ -34,6 +34,4 @@ loadstring(game:HttpGet("https://raw.githubusercontent.com/vita8it/Novel/main/ma
 
 ## Supported Games
 
-Game support and available features may change over time.
-
-Check the repository for the latest supported games and features.
+- Steal a Egg
