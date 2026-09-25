@@ -37,6 +37,20 @@
 
 </div>
 
+---
+
+<div align="center">
+
+## Installation
+
+```lua
+loadstring(game:HttpGet("https://raw.githubusercontent.com/vita8it/Novel/main/main.luau"))()
+```
+
+</div>
+
+---
+
 <div align="center">
 
 ## Supported Games
@@ -49,14 +63,13 @@ Check the repository for the latest supported games and features.
 
 <div align="center">
 
-## Usage
-
-Load Novel through your preferred supported environment
-and configure the available automation options.
+## Regulations
 
 **Take a minute to read the regulations.**
 
 </div>
+
+---
 
 <div align="center">
 
@@ -87,6 +100,6 @@ See the repository for license information.
 
 <br>
 
-**[vita8it](https://github.com/vita8it)**
+**[vita8it](https://github.com/vita8it/)**
 
 </div>
