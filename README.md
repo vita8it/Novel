@@ -1,8 +1,8 @@
 <div align="center">
 
-# Novel
+<img src="Assets/Banner.png" alt="Novel Banner" width="100%">
 
-<img src="Assets/Banner.png" alt="Novel Banner" width="800">
+# Novel
 
 **Simple Roblox automation. Fast, stable, and easy to use.**
 
@@ -13,33 +13,21 @@
 
 ---
 
-<div align="center">
-
 ## About
 
 **Novel** is a simple and lightweight Roblox automation hub focused on
 **speed, stability, and ease of use.**
 
-</div>
-
-<div align="center">
-
 ## Features
 
-|                                                                            | Feature                           |
-| :------------------------------------------------------------------------: | :-------------------------------- |
-|    ![Fast](https://img.shields.io/badge/-Fast-181717?style=flat-square)    | Fast execution                    |
-|  ![Stable](https://img.shields.io/badge/-Stable-181717?style=flat-square)  | Stable automation                 |
-|  ![Simple](https://img.shields.io/badge/-Simple-181717?style=flat-square)  | Simple and easy-to-use options    |
+| Feature                                                                    | Description                       |
+| :------------------------------------------------------------------------- | :-------------------------------- |
+| ![Fast](https://img.shields.io/badge/-Fast-181717?style=flat-square)       | Fast execution                    |
+| ![Stable](https://img.shields.io/badge/-Stable-181717?style=flat-square)   | Stable automation                 |
+| ![Simple](https://img.shields.io/badge/-Simple-181717?style=flat-square)   | Simple and easy-to-use options    |
 | ![Modular](https://img.shields.io/badge/-Modular-181717?style=flat-square) | Modular feature system            |
-|      ![UI](https://img.shields.io/badge/-UI-181717?style=flat-square)      | Clean and user-friendly interface |
+| ![UI](https://img.shields.io/badge/-UI-181717?style=flat-square)           | Clean and user-friendly interface |
 | ![Updates](https://img.shields.io/badge/-Updates-181717?style=flat-square) | Regular improvements              |
-
-</div>
-
----
-
-<div align="center">
 
 ## Installation
 
@@ -47,31 +35,15 @@
 loadstring(game:HttpGet("https://raw.githubusercontent.com/vita8it/Novel/main/main.luau"))()
 ```
 
-</div>
-
----
-
-<div align="center">
-
 ## Supported Games
 
 Game support and available features may change over time.
 
 Check the repository for the latest supported games and features.
 
-</div>
-
-<div align="center">
-
 ## Regulations
 
 **Take a minute to read the regulations.**
-
-</div>
-
----
-
-<div align="center">
 
 ## Disclaimer
 
@@ -80,26 +52,16 @@ or sponsored by Roblox Corporation.
 
 Use Novel responsibly and follow the rules of the platforms and games you use it with.
 
-</div>
-
-<div align="center">
-
 ## Contributing
 
 Contributions, suggestions, and bug reports are welcome.
 
 Feel free to open an issue or submit a pull request.
 
-</div>
-
-<div align="center">
-
 ## License
 
 See the repository for license information.
 
-<br>
+---
 
 **[vita8it](https://github.com/vita8it/)**
-
-</div>
