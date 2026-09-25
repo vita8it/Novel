@@ -17,14 +17,6 @@
 
 </div>
 
----
-
-## About
-
-> **Novel** is a simple and lightweight Roblox automation hub focused on **speed, stability, and ease of use.**
->
-> Designed to be minimal yet powerful — no unnecessary bloat, just clean and reliable automation.
-
 ## Installation
 
 ```lua
