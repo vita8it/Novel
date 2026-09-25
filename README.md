@@ -1,9 +1,5 @@
 <div align="center">
 <img src="Assets/Banner.png" alt="Novel Banner" width="100%">
-<br/>
-# Novel
-**Simple Roblox automation. Fast, stable, and easy to use.**
-<br/>
 
 ## Installation
 
