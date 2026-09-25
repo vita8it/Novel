@@ -1,4 +1,3 @@
-<div align="center">
 <img src="Assets/Banner.png" alt="Novel Banner" width="100%">
 
 ```lua
