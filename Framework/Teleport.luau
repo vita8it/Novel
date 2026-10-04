@@ -226,8 +226,6 @@ Framework.Init = function()
             local Distance = (Position - Target.Position).Magnitude
             local IsLinear = math.abs(Position.Y - Target.Position.Y) <= 5
 
-            _ENV.OnFarm = true
-
             if TeleportModule.AlwayLinear and not IsLinear then
                 TweenManager:StopTween(PrimaryPart)
                 PrimaryPart.CFrame = CFrame.new(Position.X, TargetY, Position.Z)
@@ -305,12 +303,12 @@ Framework.Init = function()
     function TeleportModule:Stop()
         if not BodyVelocity.Parent and Framework:IsAlive() then
             TweenManager:StopTween(PrimaryPart)
+            TeleportModule.OnStoped()
         end
     end
 
     Connect(BodyVelocity:GetPropertyChangedSignal("Parent"), function()
         TeleportModule:Stop()
-        TeleportModule.OnStoped()
     end)
 
     return TeleportModule
