@@ -21,7 +21,10 @@ local Character = Player.Character or Player.CharacterAdded:Wait()
 local Humanoid = Character and Character:WaitForChild('Humanoid', math.huge)
 local PrimaryPart = Character and Character:WaitForChild('HumanoidRootPart', math.huge)
 
+Framework.__IsAlive = true
+
 function Framework:IsAlive()
+    if not Framework.__IsAlive then return end
     if not Character then return end
     if not Humanoid then return end
     if not PrimaryPart then return end
@@ -178,6 +181,14 @@ Framework.BodyVelocity = function()
         Backpack = Player:FindFirstChildOfClass('Backpack')
         PrimaryPart = v:WaitForChild("HumanoidRootPart", math.huge)
     end)
+    
+    Connect(Player.CharacterRemoving, function()
+        Framework.__IsAlive = false
+
+        task.delay(1.5, function()
+            Framework.__IsAlive = true
+        end)
+    end)
 
     return BodyVelocity
 end
@@ -187,6 +198,7 @@ Framework.Init = function()
         TeleportModule.Type = 'Teleport'
         TeleportModule.Velocity = 300
         TeleportModule.AlwayLinear = false
+        TeleportModule.OnStoped = function() end
     end
 
     local TweenManager = Framework.TweenManager()
@@ -289,11 +301,16 @@ Framework.Init = function()
             Handlers[ TeleportModule.Type ]( ... )
         end 
     end
-
-    Connect(BodyVelocity:GetPropertyChangedSignal("Parent"), function()
+    
+    function TeleportModule:Stop()
         if not BodyVelocity.Parent and Framework:IsAlive() then
             TweenManager:StopTween(PrimaryPart)
         end
+    end
+
+    Connect(BodyVelocity:GetPropertyChangedSignal("Parent"), function()
+        TeleportModule:Stop()
+        TeleportModule.OnStoped()
     end)
 
     return TeleportModule
