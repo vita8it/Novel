@@ -3,7 +3,7 @@ local Utils = ...
 local Connections = Utils.Connections
 local Connect = Connections.Connect
 
-local _ENV = (getgenv or getrenv or getfenv)()
+local ENV = (getgenv or getrenv or getfenv)()
 
 local Framework, Cached = {}, {}
 
@@ -13,6 +13,7 @@ local Players = game:GetService('Players')
 
 local RenderStepped = RunService.RenderStepped
 local Stepped = RunService.Stepped
+local Heartbeat = RunService.Heartbeat
 
 local Player = Players.LocalPlayer
 local Backpack = Player.Backpack
@@ -21,16 +22,18 @@ local Character = Player.Character or Player.CharacterAdded:Wait()
 local Humanoid = Character and Character:WaitForChild('Humanoid', math.huge)
 local PrimaryPart = Character and Character:WaitForChild('HumanoidRootPart', math.huge)
 
-Framework.__IsAlive = true
+local V3Zero = Vector3.zero
+local V3Inf = Vector3.new(math.huge, math.huge, math.huge)
+local TypeOf = typeof
+local MathAbs = math.abs
+local MathClamp = math.clamp
 
 function Framework:IsAlive()
-    if not Framework.__IsAlive then return end
-    if not Character then return end
-    if not Humanoid then return end
-    if not PrimaryPart then return end
-    if not Backpack then return end
-
-    return (Humanoid and Humanoid.Health > 0) or PrimaryPart ~= nil
+    return Character ~= nil
+        and Humanoid ~= nil
+        and PrimaryPart ~= nil
+        and Backpack ~= nil
+        and Humanoid.Health > 0
 end
 
 Framework.TweenManager = function()
@@ -40,39 +43,40 @@ Framework.TweenManager = function()
     local Tweens = {}
     local EasingStyle = Enum.EasingStyle.Linear
 
-    function TweenManager.new(Object, Time, Property, Value)
-        local self = setmetatable({}, TweenManager)
+    function TweenManager.New(Object, Time, Property, Value)
+        local Self = setmetatable({}, TweenManager)
 
-        self.Value = Value
-        self.Object = Object
+        Self.Value = Value
+        Self.Object = Object
+        Self.Info = TweenInfo.new(Time, EasingStyle)
+        Self.Tween = TweenService:Create(Object, Self.Info, { [Property] = Value })
 
-        self.Info = TweenInfo.new(Time, EasingStyle)
-        self.Tween = TweenService:Create(Object, self.Info, {
-            [ Property ] = Value
-        })
-
-        self.Tween:Play()
-
-        if Tweens[ Object ] then
-            Tweens[ Object ]:Destroy()
+        local Existing = Tweens[Object]
+        if Existing then
+            Existing:Destroy()
         end
 
-        Tweens[ Object ] = self
+        Tweens[Object] = Self
+        Self.Tween:Play()
 
-        return self
+        return Self
     end
 
     function TweenManager:Destroy()
-        self.Tween:Pause()
-        self.Tween:Destroy()
+        if self.Tween then
+            self.Tween:Pause()
+            self.Tween:Destroy()
+            self.Tween = nil
+        end
 
-        Tweens[ self.Object ] = nil
+        Tweens[self.Object] = nil
         setmetatable(self, nil)
     end
 
     function TweenManager:StopTween(Object)
-        if Object and Tweens[ Object ] then
-            Tweens[ Object ]:Destroy()
+        local T = Object and Tweens[Object]
+        if T then
+            T:Destroy()
         end
     end
 
@@ -81,8 +85,8 @@ end
 
 Framework.BodyVelocity = function()
     local BodyVelocity = Instance.new("BodyVelocity") do
-        BodyVelocity.Velocity = Vector3.zero
-        BodyVelocity.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+        BodyVelocity.Velocity = V3Zero
+        BodyVelocity.MaxForce = V3Inf
         BodyVelocity.P = 1000
     end
 
@@ -92,102 +96,105 @@ Framework.BodyVelocity = function()
         Highlight.FillTransparency = 0.3
     end
 
-    if _ENV.tween_bodyvelocity then
-        _ENV.tween_bodyvelocity:Destroy()
-    end
+    local PrevBodyVelocity = ENV.TweenBodyVelocity
+    local PrevHighlight = ENV.Highlight
 
-    if _ENV.highlight then
-        _ENV.highlight:Destroy()
-    end
+    if PrevBodyVelocity then PrevBodyVelocity:Destroy() end
+    if PrevHighlight then PrevHighlight:Destroy() end
 
-    _ENV.highlight = Highlight
-    _ENV.tween_bodyvelocity = BodyVelocity
+    ENV.Highlight = Highlight
+    ENV.TweenBodyVelocity = BodyVelocity
 
     local CanCollideObjects = {} do
         local function AddObjectToBaseParts(Object)
             if Object:IsA("BasePart") and Object.CanCollide then
-                table.insert(CanCollideObjects, Object)
+                CanCollideObjects[#CanCollideObjects + 1] = Object
             end
         end
 
         local function RemoveObjectsFromBaseParts(BasePart)
-            local index = table.find(CanCollideObjects, BasePart)
-
-            if index then
-                table.remove(CanCollideObjects, index)
+            local Index = table.find(CanCollideObjects, BasePart)
+            if Index then
+                table.remove(CanCollideObjects, Index)
             end
         end
 
-        local function NewCharacter(Character)
+        local function NewCharacter(Char)
             table.clear(CanCollideObjects)
 
-            for _, Object in Character:GetDescendants() do AddObjectToBaseParts(Object) end
-            Character.DescendantAdded:Connect(AddObjectToBaseParts)
-            Character.DescendantRemoving:Connect(RemoveObjectsFromBaseParts)
+            for _, Object in Char:GetDescendants() do
+                AddObjectToBaseParts(Object)
+            end
+
+            Char.DescendantAdded:Connect(AddObjectToBaseParts)
+            Char.DescendantRemoving:Connect(RemoveObjectsFromBaseParts)
         end
 
         Connect(Player.CharacterAdded, NewCharacter)
         task.spawn(NewCharacter, Character)
     end
 
-    local function NoClipOnStepped(Character)
-        if _ENV.OnFarm then
-            for i = 1, #CanCollideObjects do
-                CanCollideObjects[i].CanCollide = false
+    local function NoClipOnStepped(Char)
+        local OnFarm = ENV.OnFarm
+        local Count = #CanCollideObjects
+
+        if OnFarm then
+            for I = 1, Count do
+                CanCollideObjects[I].CanCollide = false
             end
-        elseif Character.PrimaryPart and not Character.PrimaryPart.CanCollide then
-            for i = 1, #CanCollideObjects do
-                CanCollideObjects[i].CanCollide = true
+        elseif Char.PrimaryPart and not Char.PrimaryPart.CanCollide then
+            for I = 1, Count do
+                CanCollideObjects[I].CanCollide = true
             end
         end
     end
 
-    local function UpdateVelocityOnStepped(Character)
-        local BasePart = Character:FindFirstChild("HumanoidRootPart")
-        local Humanoid = Character:FindFirstChild("Humanoid")
+    local function UpdateVelocityOnStepped(Char)
+        local BasePart = Char:FindFirstChild("HumanoidRootPart")
+        local Hum = Char:FindFirstChild("Humanoid")
 
-        local BodyVelocity = _ENV.tween_bodyvelocity
-        local Highlight = _ENV.highlight
+        local BV = ENV.TweenBodyVelocity
+        local HL = ENV.Highlight
 
-        if _ENV.OnFarm and BasePart and Humanoid and Humanoid.Health > 0 then
-            if BodyVelocity.Parent ~= BasePart then
-                BodyVelocity.Parent = BasePart
+        if not BV or not HL then return end
+
+        local OnFarm = ENV.OnFarm
+        local IsAlive = BasePart and Hum and Hum.Health > 0
+
+        if OnFarm and IsAlive then
+            if BV.Parent ~= BasePart then
+                BV.Parent = BasePart
             end
 
-            if Highlight.Parent ~= Character then
-                Highlight.Parent = Character
+            if HL.Parent ~= Char then
+                HL.Parent = Char
             end
-        elseif BodyVelocity.Parent then
-            BodyVelocity.Parent = nil
-            Highlight.Parent = nil
+        elseif BV.Parent then
+            BV.Parent = nil
+            HL.Parent = nil
         end
 
-        if BodyVelocity.Velocity ~= Vector3.zero and (not Humanoid or not Humanoid.SeatPart or not _ENV.OnFarm) then
-            BodyVelocity.Velocity = Vector3.zero
-            Highlight.Parent = nil
+        if BV.Velocity ~= V3Zero and (not Hum or not Hum.SeatPart or not OnFarm) then
+            BV.Velocity = V3Zero
+            HL.Parent = nil
         end
     end
 
     Connect(RenderStepped, function()
         if Framework:IsAlive() then
-            UpdateVelocityOnStepped(Character)
-            NoClipOnStepped(Character)
+            local Char = Player.Character
+            if Char then
+                UpdateVelocityOnStepped(Char)
+                NoClipOnStepped(Char)
+            end
         end
     end)
 
-    Connect(Player.CharacterAdded, function(v)
-        Character = v
-        Humanoid = v:WaitForChild("Humanoid", math.huge)
+    Connect(Player.CharacterAdded, function(V)
+        Character = V
+        Humanoid = V:WaitForChild("Humanoid", math.huge)
         Backpack = Player:FindFirstChildOfClass('Backpack')
-        PrimaryPart = v:WaitForChild("HumanoidRootPart", math.huge)
-    end)
-    
-    Connect(Player.CharacterRemoving, function()
-        Framework.__IsAlive = false
-
-        task.delay(1.5, function()
-            Framework.__IsAlive = true
-        end)
+        PrimaryPart = V:WaitForChild("HumanoidRootPart", math.huge)
     end)
 
     return BodyVelocity
@@ -200,41 +207,44 @@ Framework.Init = function()
         TeleportModule.AlwayLinear = false
         TeleportModule.OnStoped = function() end
     end
-    
+
     TeleportModule.Untouch = (function()
         local Untouch = {
             UnTouches = {},
-            Connect = nil,
+            Connection = nil,
         }
 
         function Untouch:Enabled()
-            if not self.Connect then
-                self.Connect = Connect(Stepped, function()
-                    if not Character then return end
+            if self.Connection then return end
 
-                    for _, BasePart in Character:GetDescendants() do
-                        if BasePart:IsA("BasePart") and BasePart.CanTouch then
-                            BasePart.CanTouch = false
-                            self.UnTouches[BasePart] = true
-                        end
+            self.Connection = Connect(Stepped, function()
+                if not Character then return end
+
+                for _, BasePart in Character:GetDescendants() do
+                    if BasePart:IsA("BasePart") and BasePart.CanTouch then
+                        BasePart.CanTouch = false
+                        self.UnTouches[BasePart] = true
                     end
-                end)
-            end
+                end
+            end)
         end
 
         function Untouch:Disabled()
-            if self.Connect then
-                self.Connect:Disconnect()
-                self.Connect = nil
+            if self.Connection then
+                self.Connection:Disconnect()
+                self.Connection = nil
             end
 
-            for BasePart, _ in self.UnTouches do
-                if typeof(BasePart) == "Instance" and BasePart:IsA("BasePart") and BasePart.Parent then
+            for BasePart in self.UnTouches do
+                if TypeOf(BasePart) == "Instance"
+                    and BasePart:IsA("BasePart")
+                    and BasePart.Parent
+                then
                     BasePart.CanTouch = true
                 end
             end
 
-            self.UnTouches = {}
+            table.clear(self.UnTouches)
         end
 
         function Untouch:SetValue(Value)
@@ -257,7 +267,7 @@ Framework.Init = function()
         end
 
         Handlers.Tween = function(Target, Siting)
-            if typeof(Target) == "Vector3" then
+            if TypeOf(Target) == "Vector3" then
                 Target = CFrame.new(Target)
             end
 
@@ -266,35 +276,29 @@ Framework.Init = function()
             end
 
             local Position = PrimaryPart.Position
-            local TargetY = Target.Position.Y
-
-            local Velocity = TeleportModule.Velocity
             local Distance = (Position - Target.Position).Magnitude
-            local IsLinear = math.abs(Position.Y - Target.Position.Y) <= 5
 
-            if TeleportModule.AlwayLinear and not IsLinear then
+            if TeleportModule.AlwayLinear and MathAbs(Position.Y - Target.Position.Y) > 5 then
                 TweenManager:StopTween(PrimaryPart)
-                PrimaryPart.CFrame = CFrame.new(Position.X, TargetY, Position.Z)
+                PrimaryPart.CFrame = CFrame.new(Position.X, Target.Position.Y, Position.Z)
                 task.wait(0.1)
             end
 
-            return TweenManager.new(PrimaryPart, Distance / Velocity, "CFrame", Target)
+            return TweenManager.New(PrimaryPart, Distance / TeleportModule.Velocity, "CFrame", Target)
         end
 
         Handlers.Lerp = function(Function, Break, Siting)
             local Target = Function and Function()
             if not Target then return end
 
-            if typeof(Target) == "Vector3" then
+            if TypeOf(Target) == "Vector3" then
                 Target = CFrame.new(Target)
             end
 
-            if typeof(Target) ~= "CFrame" then
-                return
-            end
+            if TypeOf(Target) ~= "CFrame" then return end
 
-            while _ENV.OnFarm and Framework:IsAlive() do
-                local DeltaTime = RunService.Heartbeat:Wait()
+            while ENV.OnFarm and Framework:IsAlive() do
+                local DeltaTime = Heartbeat:Wait()
 
                 if not Siting and Humanoid.Sit then
                     Humanoid.Sit = false
@@ -303,37 +307,30 @@ Framework.Init = function()
                 Target = Function and Function()
                 if not Target then break end
 
-                if typeof(Target) == "Vector3" then
+                if TypeOf(Target) == "Vector3" then
                     Target = CFrame.new(Target)
                 end
 
-                if typeof(Target) ~= "CFrame" then
-                    break
-                end
+                if TypeOf(Target) ~= "CFrame" then break end
 
                 local StartCFrame = Character:GetPivot()
                 local Position = StartCFrame.Position
-                local TargetY = Target.Position.Y
                 local Distance = (Position - Target.Position).Magnitude
-                local IsLinear = math.abs(Position.Y - TargetY) <= 5
 
-                if TeleportModule.AlwayLinear and not IsLinear then
-                    Character:PivotTo(CFrame.new(Position.X, TargetY, Position.Z))
+                if TeleportModule.AlwayLinear and MathAbs(Position.Y - Target.Position.Y) > 5 then
+                    Character:PivotTo(CFrame.new(Position.X, Target.Position.Y, Position.Z))
                     StartCFrame = Character:GetPivot()
-                    Position = StartCFrame.Position
-                    Distance = (Position - Target.Position).Magnitude
+                    Distance = (StartCFrame.Position - Target.Position).Magnitude
                 end
 
                 if Distance <= 0.1 then
                     Character:PivotTo(Target)
                 else
-                    local Alpha = math.clamp((TeleportModule.Velocity * DeltaTime) / Distance, 0, 1)
+                    local Alpha = MathClamp((TeleportModule.Velocity * DeltaTime) / Distance, 0, 1)
                     Character:PivotTo(StartCFrame:Lerp(Target, Alpha))
                 end
 
-                if Break and Break() then
-                    break
-                end
+                if Break and Break() then break end
             end
         end
     end
@@ -341,11 +338,12 @@ Framework.Init = function()
     function TeleportModule:To( ... )
         if not Framework:IsAlive() then return end
 
-        if Handlers[ TeleportModule.Type ] then
-            Handlers[ TeleportModule.Type ]( ... )
-        end 
+        local Handler = Handlers[TeleportModule.Type]
+        if Handler then
+            Handler( ... )
+        end
     end
-    
+
     function TeleportModule:Stop()
         if not BodyVelocity.Parent and Framework:IsAlive() then
             TweenManager:StopTween(PrimaryPart)
