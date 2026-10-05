@@ -200,13 +200,59 @@ Framework.Init = function()
         TeleportModule.AlwayLinear = false
         TeleportModule.OnStoped = function() end
     end
+    
+    TeleportModule.Untouch = (function()
+        local Untouch = {
+            UnTouches = {},
+            Connect = nil,
+        }
+
+        function Untouch:Enabled()
+            if not self.Connect then
+                self.Connect = Connect(Stepped, function()
+                    if not Character then return end
+
+                    for _, BasePart in Character:GetDescendants() do
+                        if BasePart:IsA("BasePart") and BasePart.CanTouch then
+                            BasePart.CanTouch = false
+                            self.UnTouches[BasePart] = true
+                        end
+                    end
+                end)
+            end
+        end
+
+        function Untouch:Disabled()
+            if self.Connect then
+                self.Connect:Disconnect()
+                self.Connect = nil
+            end
+
+            for BasePart, _ in self.UnTouches do
+                if typeof(BasePart) == "Instance" and BasePart:IsA("BasePart") and BasePart.Parent then
+                    BasePart.CanTouch = true
+                end
+            end
+
+            self.UnTouches = {}
+        end
+
+        function Untouch:SetValue(Value)
+            if Value then
+                self:Enabled()
+            else
+                self:Disabled()
+            end
+        end
+
+        return Untouch
+    end)()
 
     local TweenManager = Framework.TweenManager()
     local BodyVelocity = Framework.BodyVelocity()
 
     local Handlers = {} do
         Handlers.Teleport = function(Target)
-            _ENV.OnFarm = true
             Character:PivotTo(Target)
         end
 
@@ -303,7 +349,10 @@ Framework.Init = function()
     function TeleportModule:Stop()
         if not BodyVelocity.Parent and Framework:IsAlive() then
             TweenManager:StopTween(PrimaryPart)
+            TeleportModule.Untouch:SetValue(false)
             TeleportModule.OnStoped()
+        else
+            TeleportModule.Untouch:SetValue(true)
         end
     end
 
