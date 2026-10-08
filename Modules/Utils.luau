@@ -481,6 +481,10 @@ Module:NewModule("EachOthers", function()
     end
 
     function EachOthers:Rejoin()
+        if _ENV.NVL_CUSTOM_REJOIN then
+            return _ENV.NVL_CUSTOM_REJOIN()
+        end
+        
         if #Players:GetPlayers() <= 1 then
             Player:Kick("\nRejoining");wait()
 
