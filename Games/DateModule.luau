@@ -167,11 +167,10 @@ local DataModule = {} do
             Snow = CFrame.new(1210, 429, -4663),
             ["Winter Castle"] = CFrame.new(5544.718, 60.139, -6359.089),
         },
-
         {
             ["Cake Land"] = CFrame.new(-2098.970, 76.395, -12128.359),
             ["Chocolate Land"] = CFrame.new(379.140, 130.206, -12720.840),
-            ["Great Tree"] = CFrame.new(4345.094, 575.052, -6159.004),
+            ['Head of Great Tree'] = CFrame.new(3070, 2281, -7335),
             ["Haunted Castle"] = CFrame.new(-9515.001, 149.189, 5534.050),
             ["Hydra Arena"] = CFrame.new(5020.946, 174.086, -2011.185),
             ["Hydra Town"] = CFrame.new(5288.622, 1011.653, 392.430),
