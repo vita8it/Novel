@@ -37,7 +37,7 @@ local DataModule = {} do
             ["Cyborg Race"] = { "CyborgTrainer", "Buy" },
         },
     }
-    
+
     DataModule.FruitIds = {
         ["rbxassetid://15124425041"] = "Rocket",
         ["rbxassetid://15123685330"] = "Spin",
@@ -79,7 +79,7 @@ local DataModule = {} do
         ["rbxassetid://118054805452821"] = "Gas",
         ["rbxassetid://95749033139458"] = "Dragon East"
     }
-    
+
     DataModule.Islands = {
         {
             ['Pirate Starter'] = CFrame.new(1077, 16, 1439),
@@ -128,29 +128,63 @@ local DataModule = {} do
         },
     }
 
-    DataModule.Places = {
+    DataModule.Islands = {
         {
-            ["Cyborg's Domain"] = CFrame.new(6271, 71, 4000),
-            ["Thunder God's Domain"] = CFrame.new(-7989, 5814, -2030),
-            ["Saber Expert's Domain"] = CFrame.new(-1425, 30, -14)
+            Colosseum = CFrame.new(-1517.164, 61.453, -3035.124),
+            Desert = CFrame.new(1317.169, 158.484, 4463.431),
+            Fountain = CFrame.new(5438.696, 418.978, 4396.387),
+            Jungle = CFrame.new(-1544, 55, 76),
+            ["Marine Fortress"] = CFrame.new(-4873, 142, 4328),
+            ["Middle Town"] = CFrame.new(-706.579, 53.155, 1587.211),
+            ["Pirate Village"] = CFrame.new(-1258, 113, 4068),
+            Prison = CFrame.new(5064, 134, 735),
+            Sky = CFrame.new(-4860.966, 932.238, -916.349),
+            Snow = CFrame.new(1394.464, 39.045, -1321.639),
+            ["Starter Island"] = CFrame.new(848, 15, 1494),
+            ["Starter Marine"] = CFrame.new(-2921, 65.733, 2297),
+            Underwater = CFrame.new(61162.293, 57.585, 1315.787),
+            ["Upper Sky"] = CFrame.new(-5974.288, 5472.319, 2088.054),
+            Volcano = CFrame.new(-5560.487, 94.99, 8472.6),
         },
+
         {
-            ['Cafe'] = CFrame.new(-377, 73, 290),
-            ['Basement Cafe'] = CFrame.new(-350, 16, 242),
-            ['Mansion'] = CFrame.new(-392, 374, 720),
-            ["Swan's Room"] = CFrame.new(2462, 15, 695),
-            ['Raid'] = CFrame.new(-6535, 310, -4745),
-            ['Labs'] = CFrame.new(-5548, 224, -5899),
-            ['Colosseum'] = CFrame.new(-1822, 46, 1411),
+            Cafe = CFrame.new(-382, 74, 356),
+            Colosseum = CFrame.new(-1836, 46, 1642),
+            ["Dark Arena"] = CFrame.new(3948, 13, -3479),
+            ["Docks 1"] = CFrame.new(-923, 8, 1810),
+            ["Docks 2"] = CFrame.new(-13, 39, 2708),
+            ["Docks 3"] = CFrame.new(-1944, 9, -2594),
+            ["Docks 4"] = CFrame.new(-5798, 1, -5021),
+            Doghouse = CFrame.new(-1984, 125, -82),
+            Graveyard = CFrame.new(-5710, 126, -775),
+            ["Haunted Ship"] = CFrame.new(937, 125, 32879),
+            Lab = CFrame.new(-5541, 230, -5898),
+            Lava = CFrame.new(-5208, 184, -5505),
+            Mansion = CFrame.new(-494, 339, 593),
+            Raid = CFrame.new(-6495, 95, -4897),
+            Remote = CFrame.new(4766, 8, 2911),
+            Skull = CFrame.new(-2956.243, 123.399, -9981.069),
+            Snow = CFrame.new(1210, 429, -4663),
+            ["Winter Castle"] = CFrame.new(5544.718, 60.139, -6359.089),
         },
+
         {
-            ["Beautiful Pirate's Domain"] = CFrame.new(5339, 22, -328),
-            ['Head Castle on the Sea'] = CFrame.new(-5421, 1090, -2666),
-            ['Mansion'] = CFrame.new(-12552, 337, -7504),
-            ['Dragon Dojo'] = CFrame.new(5701, 1207, 924),
-            ['Friendly Arena'] = CFrame.new(5012, 59, -1571),
-            ['Waterfall'] = CFrame.new(5174, 8, 1191),
-            ['Head of Great Tree'] = CFrame.new(3070, 2281, -7335)
+            ["Cake Land"] = CFrame.new(-2098.970, 76.395, -12128.359),
+            ["Chocolate Land"] = CFrame.new(379.140, 130.206, -12720.840),
+            ["Great Tree"] = CFrame.new(4345.094, 575.052, -6159.004),
+            ["Haunted Castle"] = CFrame.new(-9515.001, 149.189, 5534.050),
+            ["Hydra Arena"] = CFrame.new(5020.946, 174.086, -2011.185),
+            ["Hydra Town"] = CFrame.new(5288.622, 1011.653, 392.430),
+            ["Ice Cream Land"] = CFrame.new(-917.549, 63.364, -10858.696),
+            ["Peanut Land"] = CFrame.new(-2037.800, 13.651, -9948.202),
+            Port = CFrame.new(-342.434, 23.832, 5547.346),
+            ["Sea Castle"] = CFrame.new(-5502.179, 323.671, -2863.462),
+            ["Tiki Outpost"] = CFrame.new(-16456.463, 530.252, 436.232),
+            ["Submerg Island"] = CFrame.new(11534, -2155, 9830),
+            ["Turtle Center"] = CFrame.new(-12007.979, 339.155, -9178.580),
+            ["Turtle Entrance"] = CFrame.new(-10163.965, 340.290, -8320.768),
+            ["Turtle Mansion"] = CFrame.new(-12538.422, 339.394, -7817.071),
+            ["Turtle Mountain"] = CFrame.new(-12856.613, 852.754, -10715.230),
         },
     }
 
@@ -181,7 +215,7 @@ local DataModule = {} do
             ["Demonic Wisp"] = { "Demonic Soul" }
         }
     }
-    
+
     DataModule.Bosses = {
         {
             ["The Gorilla King"] = {
@@ -313,33 +347,38 @@ local DataModule = {} do
         },
     }
     
-    DataModule.Gates = {
-        {
-            ["Under Water"] = Vector3.new(61163, 5, 1819),
-            ["Sky 1"] = Vector3.new(-4607, 872, -1667),
-            ["Sky 2"] = Vector3.new(-7894, 5545, -380),
-            ["Gate"] = Vector3.new(3860, 26, -1780)
-        },
-        {
-            ["Out Ghost Ship"] = Vector3.new(-6505, 125, -130),
-            ["Ghost Ship"] = Vector3.new(923, 125, 32852),
-            ["Mansion"] = Vector3.new(-288, 200, 611),
-            ["Swan"] = Vector3.new(2283, 60, 905)
-        },
-        {
-            ["Castle on the Sea"] = Vector3.new(-5100, 450, -3250),
-            ["Mansion"] = Vector3.new(-12540, 333, -7600),
-            ["Hydra"] = Vector3.new(5750, 1120, -338)
-        },
+    DataModule.Codes = {
+        "SUB2GAMERROBOT_EXP1",
+        "starcodeheo",
+        "Sub2Fer999",
+        "SUB2GAMERROBOT_RESET1",
+        "EASTEREXP",
+        "Lightningabuse",
+        "KITT_RESET",
+        "Sub2UncleKizaru",
+        "fudd10_v2",
+        "Fudd10",
+        "Bignews",
+        "kittgaming",
+        "Sub2CaptainMaui",
+        "Enyu_is_Pro",
+        "Magicbus",
+        "JCWK",
+        "Bluxxy",
+        "TheGreatAce",
+        "Sub2OfficialNoobie",
+        "Sub2NoobMaster123",
+        "Axiore",
+        "Sub2Daigrock",
+        "TantaiGaming",
+        "StrawHatMaine",
     }
 end
 
 DataModule.Currently = {
     Materials = DataModule.Materials[Sea],
     Islands = DataModule.Islands[Sea],
-    Places = DataModule.Places[Sea],
     Bosses = DataModule.Bosses[Sea],
-    Gates = DataModule.Gates[Sea]
 }
 
 function DataModule:GetNames(Name)
@@ -355,9 +394,7 @@ end
 do
     DataModule.MaterialNames = DataModule:GetNames("Materials")
     DataModule.IslandNames = DataModule:GetNames("Islands")
-    DataModule.PlaceNames = DataModule:GetNames("Places")
     DataModule.BosseNames = DataModule:GetNames("Bosses")
-    DataModule.GateNames = DataModule:GetNames("Gates")
 end
 
 return DataModule
