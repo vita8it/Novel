@@ -1,20 +1,22 @@
 local _ENV = getgenv()
 
-if _ENV.Ox then return nil end
-_ENV.Ox = true
+if _ENV.NVL_LOADED then return nil end
+_ENV.NVL_LOADED = true
 
 local Library = {} do
     Library.GameIds = {
-        [ 10563114921 ] = "a33b12c1f51cf2b427e1294dcadc19ef73499eb7e39579b4c9d3426f2a9ebe71"
+        [ 994732206 ] = "a33b12c1f51cf2b427e1294dcadc19ef73499eb7e39579b4c9d3426f2a9ebe71"
     }
 end
 
-local Players = game:GetService('Players')
-local RunService = game:GetService('RunService')
+repeat task.wait() until game:IsLoaded() and game:GetService('Players') and game:GetService('Players').LocalPlayer
+
 local UserInputService = game:GetService('UserInputService')
 local ContentProvider = game:GetService('ContentProvider')
 local TweenService = game:GetService('TweenService')
+local RunService = game:GetService('RunService')
 local CoreGui = game:GetService('CoreGui')
+local Players = game:GetService('Players')
 
 local CurrentCamera = workspace.CurrentCamera
 
@@ -27,16 +29,16 @@ end
 
 if License then
     local Validation = Junkie.check_key(License)
-    
+
     if Validation and Validation.valid then
         _ENV.SCRIPT_KEY = License
-        
+
         loadstring(
             game:HttpGet(
                 Link:format(Library.GameIds[game.GameId])
             )
         )()
-        
+
         return
     end
 end
@@ -271,7 +273,7 @@ if not RunService:IsStudio() then
     Library.SaveKey = (function()
         local Save = {}
 
-        local FolderName = "Xova shield"
+        local FolderName = "NVL-HMAC"
         local FileName = FolderName .. "/key.txt"
 
         if not isfolder(FolderName) then
@@ -710,7 +712,7 @@ function Library:Window(Callback)
             Enum.FontStyle.Normal
         ),
         RichText = true,
-        Text = "3 checkpoint or buy our license",
+        Text = "1 checkpoint or buy our license",
         TextColor3 = Color3.fromRGB(255, 255, 255),
         TextSize = 10,
         TextTransparency = 0.2,
@@ -833,7 +835,7 @@ function Library:Window(Callback)
                     Link_1.Visible = false
                     Input_1.Visible = false
 
-                    MainText.Text = "Welcome"
+                    MainText.Text = "Welcome back, Master"
 
                     local ExpandSize_VALID = Library:Tween({
                         v = Background_1,
@@ -844,13 +846,13 @@ function Library:Window(Callback)
                             Size = UDim2.new(0, 350, 0, 110),
                         },
                     })
-                    
+
                     local Link = "https://api.jnkie.com/api/v1/luascripts/public/%s/download"
 
                     ExpandSize_VALID.Completed:Connect(function()
                         task.delay(2.5, function()
                             Secret:Destroy()
-                            
+
                             if not Library.GameIds[game.GameId] then
                                 return LocalPlayer:Kick('Game is not supported.')
                             end
@@ -905,9 +907,9 @@ function Library:Window(Callback)
                         ClickGetkey,
                         Getkey_1
                     )
-                    
+
                     local Old = TextBox.Text
-                    
+
                     TextBox.Text = Colors('Link is copied.', Color3.fromRGB(255, 170, 0))
 
                     task.delay(1, function()
