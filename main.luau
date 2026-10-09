@@ -27,6 +27,14 @@ local Junkie = loadstring(game:HttpGet("https://jnkie.com/sdk/library.lua"))() d
     Junkie.provider = "Novel Provider"
 end
 
+local LocalPlayer = Players.LocalPlayer
+local PlayerGui = LocalPlayer.PlayerGui
+
+for _, Connectyion in getconnections(LocalPlayer.Idled) do
+    pcall(function() Connectyion:Disable() end)
+    pcall(function() Connectyion:Disconnect() end)
+end
+
 if License then
     local Validation = Junkie.check_key(License)
 
@@ -44,9 +52,6 @@ if License then
 end
 
 local Mobile = if UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled then true else false
-
-local LocalPlayer = Players.LocalPlayer
-local PlayerGui = LocalPlayer.PlayerGui
 
 function Library:Parent()
     if not RunService:IsStudio() then
