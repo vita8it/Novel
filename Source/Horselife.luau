@@ -87,7 +87,7 @@ Module.HorseModule = (function()
     end
 
     for _, Specie in Species:GetChildren() do
-        table.insert(HIDDEN_SETTINGS.SPECIES, Species.Name)
+        table.insert(HIDDEN_SETTINGS.SPECIES, Specie.Name)
     end
 
     return HorseModule
