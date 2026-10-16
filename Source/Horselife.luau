@@ -68,21 +68,9 @@ local Humanoid = Character and Character:WaitForChild('Humanoid', math.huge)
 local PrimaryPart = Character and Character:WaitForChild('HumanoidRootPart', math.huge)
 
 Module.HorseModule = (function()
-    local HorseModule = {
-        __Cached = {},
-        __Rarities = {}
-    }
-
+    local HorseModule = {}
     local Species = Animals:WaitForChild("Species")
-
-    function HorseModule:NewSpecie(__Module__)
-        self.__Rarities[ __Module__.Name ] = require(__Module__).Rarity.Name
-    end
     
-    function HorseModule:GetRarityBySpecies(Value)
-        return self.__Rarities[ Value ] 
-    end
-
     function HorseModule:GetClosest()
         local Closest, Distance = nil, math.huge
 
@@ -99,13 +87,7 @@ Module.HorseModule = (function()
     end
 
     for _, Specie in Species:GetChildren() do
-        HorseModule:NewSpecie(Specie)
-    end
-    
-    for _, Rarity in HorseModule.__Rarities do
-        if not table.find(HIDDEN_SETTINGS.SPECIES, Rarity) then
-            table.insert(HIDDEN_SETTINGS.SPECIES, Rarity)
-        end
+        table.insert(HIDDEN_SETTINGS.SPECIES, Species.Name)
     end
 
     return HorseModule
@@ -128,15 +110,11 @@ Module.LassoManager = (function()
     end
 
     local function IsValidData(Data)
-        return Data ~= nil
-            and type(Data.Distance) == "number"
-            and type(Data.Hit) == "number"
+        return Data ~= nil and type(Data.Distance) == "number" and type(Data.Hit) == "number"
     end
 
     local function IsBetter(Data, BestData)
-        if not BestData then
-            return true
-        end
+        if not BestData then return true end
 
         if Data.Distance ~= BestData.Distance then
             return Data.Distance > BestData.Distance
@@ -167,11 +145,9 @@ Module.LassoManager = (function()
 
     function LassoManager:GetOwnedLassos()
         local Owned = {}
+        
         local Folder = Client:GetItemFolder("Tools")
-
-        if not Folder then
-            return Owned
-        end
+        if not Folder then return Owned end
 
         for _, Value in ipairs(Folder:GetChildren()) do
             local Name = GetItemName(Value)
@@ -229,10 +205,7 @@ Module.LassoManager = (function()
             BestLasso = self:GetBestLasso()
         end
 
-        if not BestLasso then
-            return nil
-        end
-
+        if not BestLasso then return end
         if BestLasso.Parent ~= Character then
             Humanoid:EquipTool(BestLasso)
         end
@@ -260,8 +233,10 @@ Module.HorseManager = (function()
 
     function HorseManager:GetHorse()
         if not Character then return end
+        
         local Animals = Character:FindFirstChild('Animals')
         if not Animals then return end
+        
         return Animals:FindFirstChildOfClass('Model')
     end
 
@@ -278,6 +253,10 @@ Module.HorseManager = (function()
         if not Horse then return end
 
         Cached.LastHorse = Horse
+        
+        if Character then
+            Character:PivotTo(Horse:GetPivot())
+        end
 
         local PromptName = `Workspace.Characters.{Player.Name}.Animals.{Horse.Name}.RootPart.MiddleBody.UpperBody`
         local MyFolder = WorkspaceGui:FindFirstChild(PromptName, true)
@@ -308,9 +287,8 @@ Module.SellerModule = (function()
         if not Display or not Display.Slot then return end
 
         local Species = Display.Slot.Species.Value
-        local Rarity = HorseModule:GetRarityBySpecies(Species)
 
-        if not table.find(Settings['Keep Rarity'], Rarity) then
+        if not table.find(Settings['Keep Species'], Species) then
             return DisplayAnimalClient.SellSlotOrClose()
         end
 
@@ -366,7 +344,7 @@ Module.PlayerManager = (function()
                 self:Tamer(Horse)
                 NextClick = tick() + 0.5
             end
-        until (Break and Break()) or not Horse.Parent or not self:IsAlive()
+        until (Break and Break()) or not Horse.Parent or not self:IsAlive() or not table.find(Settings['Keep Species'], Horse.Name)
         
         Module.SellerModule:NextInteger()
     end
@@ -398,8 +376,9 @@ local Options = GoodQueue.Build() do
 
         if Humanoid.Sit then
             PlayerManager:Taming(Closest, function()
-                return not HorseManager:IsEquipped() or not Settings['Auto Tame']
+                return not HorseManager:IsEquipped() or not Settings['Auto Tame'] or not Humanoid.Sit
             end)
+            
             return true
         end
 
@@ -425,20 +404,20 @@ task.spawn(function()
         Plugins:Community()
 
         local Standard = Plugins:MakeTab({
-            Plugins.Add("Standard", "เธกเธฒเธ•เธฃเธเธฒเธ"),
-            Plugins.Add("Standard farming functions", "เธเธฑเธเธเธฑเนเธเธกเธฒเธ•เธเธฒเธเนเธเธเธฒเธฃเธเธฒเธฃเนเธก"),
+            Plugins.Add("Standard", "มาตรฐาน"),
+            Plugins.Add("Standard farming functions", "ฟังชั่นมาตฐานในการฟาร์ม"),
             127866486547434
         }) do
             Standard:Section("Tamings") do
-                Plugins:Default("Keep Rarity", { "Common" })
+                Plugins:Default("Keep Species", { "Common" })
 
                 Plugins:Dropdown(Standard, {
-                    Plugins.Add("Keep Rarity", "เธขเธเน€เธงเนเธเธฃเธฐเธ”เธฑเธ"),
-                }, HIDDEN_SETTINGS.SPECIES, "Keep Rarity")
+                    Plugins.Add("Keep Species", "ยกเว้นสายพันธ์"),
+                }, HIDDEN_SETTINGS.SPECIES, "Keep Species")
 
                 Plugins:Toggle(Standard, {
-                    Plugins.Add("Auto Tame Horse", "เธญเธญเนเธ•เนเธเธฑเธเธกเนเธฒ"),
-                    Plugins.Add("Taming the horse automatically, selling when it not in keep rarity.", "เธเธฑเธเธกเนเธฒเนเธ”เธขเธญเธฑเธ•เนเธเธกเธฑเธ•เธดเนเธฅเธฐเธเธฒเธขเธซเธฒเธเธกเนเธฒเนเธกเนเนเธ”เนเธญเธขเธนเนเนเธเธฃเธฐเธ”เธฑเธเธ—เธตเนเธเธณเธซเธเธ”"),
+                    Plugins.Add("Auto Tame Horse", "ออโต้จับม้า"),
+                    Plugins.Add("Taming the horse automatically, selling when it not in keep species.", "จับม้าโดยอัตโนมัติและขายหากม้าไม่ได้อยู่ในสายพันธ์ที่กำหนด"),
                 }, "Auto Tame") 
             end
             
@@ -446,17 +425,17 @@ task.spawn(function()
                 Plugins:Default("Select Lasso", { HIDDEN_SETTINGS.LASSOS [ 1 ] })
 
                 Plugins:Dropdown(Standard, {
-                    Plugins.Add("Select Lasso", "เน€เธฅเธทเธญเธเน€เธเธทเธญเธ"),
+                    Plugins.Add("Select Lasso", "เลือกเชือก"),
                 }, HIDDEN_SETTINGS.LASSOS, "Select Lasso")
 
                 Plugins:Toggle(Standard, {
-                    Plugins.Add("Buy Select", "เธญเธญเนเธ•เนเธเธทเนเธญเธ—เธตเนเน€เธฅเธทเธญเธ"),
-                    Plugins.Add("Automatically buy the selected lassos.", "เธเธทเนเธญเน€เธเธทเธญเธเธ—เธตเนเน€เธฅเธทเธญเธเนเธ”เธขเธญเธฑเธ•เนเธเธกเธฑเธ•เธด"),
+                    Plugins.Add("Buy Select", "ออโต้ซื้อที่เลือก"),
+                    Plugins.Add("Automatically buy the selected lassos.", "ซื้อเชือกที่เลือกโดยอัตโนมัติ"),
                 }, "Buy Select") 
 
                 Plugins:Toggle(Standard, {
-                    Plugins.Add("Buy All", "เธญเธญเนเธ•เนเธเธทเนเธญเธ—เธฑเนเธเธซเธกเธ”"),
-                    Plugins.Add("Automatically buy all lassos in the list.", "เธเธทเนเธญเน€เธเธทเธญเธเธ—เธธเธเธเธเธดเธ”เนเธ”เธขเธญเธฑเธ•เนเธเธกเธฑเธ•เธด"),
+                    Plugins.Add("Buy All", "ออโต้ซื้อทั้งหมด"),
+                    Plugins.Add("Automatically buy all lassos in the list.", "ซื้อเชือกทุกชนิดโดยอัตโนมัติ"),
                 }, "Buy All") 
             end
         end
