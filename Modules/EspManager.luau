@@ -16,15 +16,12 @@ EspManager.__newindex = function(self, index, value)
     end
 end
 
-local CoreGuiEspFolder = Instance.new("Folder", CoreGui) do
-    CoreGuiEspFolder.Name = "NVL-EspFolder"
+local CoreGuiEspFolder = CoreGui:FindFirstChild("NVL-EspFolder")
+if CoreGuiEspFolder then CoreGuiEspFolder:Destroy() end
 
-    local _EspFolder = CoreGui:FindFirstChild(CoreGuiEspFolder.Name)
-
-    if _EspFolder and _EspFolder ~= CoreGuiEspFolder then
-        _EspFolder:Destroy()
-    end
-end
+CoreGuiEspFolder = Instance.new("Folder")
+CoreGuiEspFolder.Name = "NVL-EspFolder"
+CoreGuiEspFolder.Parent = CoreGui
 
 local EspTemplate = Instance.new("BoxHandleAdornment") do
     local BoxHandleAdornment = EspTemplate
