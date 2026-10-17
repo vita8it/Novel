@@ -547,7 +547,11 @@ Module:NewModule("Plugins", function()
         Configable:Default(...)
     end
 
-    Plugins:Default("Select Laugage", "English")
+    if Player.LocaleId == 'th-th' then
+        Plugins:Default("Select Laugage", "ภาษาไทย")
+    else
+        Plugins:Default("Select Laugage", "English") 
+    end
 
     function Plugins:Window(Queueable, Args)
         Args = Args or {}
