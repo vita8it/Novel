@@ -24,7 +24,6 @@ if CoreGuiEspFolder then CoreGuiEspFolder:Destroy() end
 CoreGuiEspFolder = Instance.new("Folder")
 CoreGuiEspFolder.Name = "NVL-EspFolder"
 CoreGuiEspFolder.Parent = EspRoot
-CoreGuiEspFolder.ResetOnSpawn = false
 
 local EspTemplate = Instance.new("BoxHandleAdornment") do
     local BoxHandleAdornment = EspTemplate
