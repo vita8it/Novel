@@ -18,12 +18,13 @@ end
 
 local EspRoot = (gethui and gethui()) or CoreGui or Players.LocalPlayer:WaitForChild("PlayerGui")
 
-local CoreGuiEspFolder = EspRoot:FindFirstChild("NVL-EspFolder")
-if CoreGuiEspFolder then CoreGuiEspFolder:Destroy() end
-
-CoreGuiEspFolder = Instance.new("Folder")
-CoreGuiEspFolder.Name = "NVL-EspFolder"
-CoreGuiEspFolder.Parent = EspRoot
+local CoreGuiEspFolder = _ENV.NVL_ESP_FOLDER or Instance.new("Folder") do
+    CoreGuiEspFolder = Instance.new("Folder")
+    CoreGuiEspFolder.Name = "NVL-EspFolder"
+    CoreGuiEspFolder.Parent = EspRoot
+    
+    _ENV.NVL_ESP_FOLDER = CoreGui
+end
 
 local EspTemplate = Instance.new("BoxHandleAdornment") do
     local BoxHandleAdornment = EspTemplate
