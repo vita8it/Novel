@@ -1198,11 +1198,11 @@ function Module:Window(Args)
             })
 
             function LabelModule:SetTitle(Texter)
-                Row.Title = tostring(Texter)
+                Row.Title.Text = tostring(Texter)
             end
 
             function LabelModule:SetDesc(Texter)
-                Row.Footer = tostring(Texter)
+                Row.Footer.Text = tostring(Texter)
             end
 
             function LabelModule:SetText(Texter)
