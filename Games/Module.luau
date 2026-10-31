@@ -1111,11 +1111,11 @@ Module.EnemiesModule = (function()
     local EnemyLocations, SpawnLocations = {}, {}
 
     local BringBlacklist = {
-        ["Tyrant of the skies"] = true
+        ["Tyrant of the Skies"] = true
     }
 
     local EliteTags = {
-        ["Tyrant of the skies"] = true,
+        ["Tyrant of the Skies"] = true,
         ["Deandre"] = true,
         ["Diablo"] = true,
         ["Urban"] = true,
@@ -3450,7 +3450,7 @@ Module.LeviathanService = (function()
     local SkillManager = Module.SkillManager
 
     function LeviathanService.__Breakable(Enemy, Break)
-        return PlayerManager:IsAlive() or not Module:IsAlive(Enemy) or not _ENV.OnFarm or not (Break and Break())
+        return not PlayerManager:IsAlive() or not Module:IsAlive(Enemy) or not _ENV.OnFarm or not (Break and Break())
     end
 
     function LeviathanService:GetClosestSegment()
