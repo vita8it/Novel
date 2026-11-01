@@ -563,7 +563,7 @@ Module:NewModule("Plugins", function()
         self.Threads = Queueable.Threads
 
         self.Library = Novel:Window({
-            Title = Args[1] or "Novel's official",
+            Title = Args[1] or "[ 🎃 ] Novel's official",
             Footer = Args[2] or "Made by vita8it",
         })
 
