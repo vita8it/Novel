@@ -1111,7 +1111,9 @@ Module.EnemiesModule = (function()
     local EnemyLocations, SpawnLocations = {}, {}
 
     local BringBlacklist = {
-        ["Tyrant of the Skies"] = true
+        ["Tyrant of the Skies"] = true,
+        ["Dapper Jack"] = true,
+        ["Hellfire Gas"] = true
     }
 
     local EliteTags = {
