@@ -494,7 +494,21 @@ Module.BladeHits = (function()
         end
 
         return true
-    end
+	end
+	
+	function BladeHits:CanHitPlayer(Model)
+		local TargetPlayer = Players:GetPlayerFromCharacter(Model)
+		if not TargetPlayer then return end
+		
+		if TargetPlayer:GetAttribute("PvpDisabled") then return end
+		if TargetPlayer:GetAttribute("IslandRaiding") then return end
+
+		local InSafeZone = TargetPlayer:GetAttribute("InSafeZone")
+		local InCombat = TargetPlayer:GetAttribute("InCombat")
+		if InSafeZone and not InCombat then return end
+
+		return true
+	end
 
     function BladeHits:CanChangeGunTarget(Target, Enemy)
         if Enemy.Parent == SeaBeasts then
@@ -506,22 +520,25 @@ Module.BladeHits = (function()
         return false
     end
 
-    function BladeHits:ProcessHits(List, Distance)
-        local MyCharacter = Player.Character
-        local Targets = List:GetChildren()
+	function BladeHits:ProcessHits(List, Distance)
+		local MyCharacter = Player.Character
+		local Targets = List:GetChildren()
 
-        for i = 1, #Targets do
-            local Character = Targets[i]
-            if Character == MyCharacter or Character:GetAttribute("IsBoat") or not Module:IsAlive(Character) then continue end
-            local RootPart = Character.PrimaryPart
-            if RootPart and (Character.Parent ~= Characters or self:CheckPlayerAlly(Character)) then
-                local Hitbox = self:GetRandomHitboxLimb(Character) or RootPart
-                if Hitbox and (self.__LocalPosition - RootPart.Position).Magnitude <= Distance then
-                    table.insert(self.__BladeHits, { Character, Hitbox })
-                end
-            end
-        end
-    end
+		for i = 1, #Targets do
+			local Character = Targets[i]
+			if Character == MyCharacter or Character:GetAttribute("IsBoat") or not Module:IsAlive(Character) then continue end
+
+			local RootPart = Character.PrimaryPart
+			if not RootPart then continue end
+
+			if Character.Parent ~= Characters or (not self:CheckPlayerAlly(Character) and self:CanHitPlayer(Character)) then
+				local Hitbox = self:GetRandomHitboxLimb(Character) or RootPart
+				if (self.__LocalPosition - RootPart.Position).Magnitude <= Distance then
+					table.insert(self.__BladeHits, { Character, Hitbox })
+				end
+			end
+		end
+	end
 
     function BladeHits:ProcessSeaEventsHits(Distance)
         for _, SeaBeast in SeaBeasts:GetChildren() do
@@ -1913,14 +1930,53 @@ Module.ItemsService = (function()
     return ItemsService
 end)()
 
+Module.LerpService = (function()
+	local LerpService = {} do
+		LerpService.IsRunning = false
+		LerpService.LastTarget = nil
+		LerpService.LastVelocity = 0
+		LerpService.LastDelta = 0
+	end
+	
+	function LerpService.new(Target, Velocity)
+		LerpService.IsRunning = true
+		LerpService.LastTarget = Target
+		LerpService.LastVelocity = Velocity
+	end
+	
+	function LerpService:Stop()
+		LerpService.IsRunning = false
+		LerpService.LastTarget = nil
+		LerpService.LastDelta = 0
+	end
+	
+	Connect(Heartbeat, function(Delta)
+		if not LerpService.LastTarget then return end
+		if not LerpService.IsRunning then return end
+		if not PrimaryPart then return end
+
+		LerpService.LastDelta = Delta
+
+		local Distance = Player:DistanceFromCharacter(LerpService.LastTarget.Position)
+
+		if Distance > 3 then
+			local Alpha = math.clamp(LerpService.LastVelocity / Distance * Delta, 0, 1)
+			PrimaryPart.CFrame = PrimaryPart.CFrame:Lerp(LerpService.LastTarget, Alpha)
+		end
+	end)
+	
+	return LerpService
+end)()
+
 Module.PlayerManager = (function()
     local PlayerManager = {} do
         PlayerManager.__IsBringed = false
     end
 
     local EnemiesModule = Module.EnemiesModule
+	local LerpService = Module.LerpService
     local GateModule = Module.GateModule
-    local GameInfo = Module.GameInfo
+	local GameInfo = Module.GameInfo
 
     local Positions = GameInfo.Positions
 
@@ -1954,11 +2010,11 @@ Module.PlayerManager = (function()
         local Velocity = Settings["Travel Velocity"] or HIDDEN_SETTINGS.TWEEN_SPEED
         local Distance = Player:DistanceFromCharacter(Target.Position)
 
-        if Distance <= 100 then
-            return TweenManager.new(PrimaryPart, 0.125, "CFrame", Target)
+		if Distance <= 100 then
+			return LerpService.new(Target, Velocity * 3)
         end
 
-        return TweenManager.new(PrimaryPart, Distance / Velocity, "CFrame", Target)
+		return LerpService.new(Target, Velocity)
     end
 
     function PlayerManager.__stopship()
@@ -1973,7 +2029,7 @@ Module.PlayerManager = (function()
 
     function PlayerManager.__stop()
         if not BodyVelocity.Parent and Player.Character then
-            TweenManager:StopTween(PrimaryPart)
+			LerpService:Stop()
             PlayerManager.__stopship()
         end
     end
@@ -2009,7 +2065,30 @@ Module.PlayerManager = (function()
 
             return Tool
         end
-    end
+	end
+	
+	function PlayerManager:ToSubmerg(HaveSit)
+		if Player:DistanceFromCharacter(Positions.SubmarineWorker) > 5 then
+			return self:Travel(Positions.SubmarineWorker, HaveSit, {
+				['Tiki outpos [ Submerg ]'] = true,
+				['Submerg Island'] = true
+			})
+		end
+
+		Net["RF/SubmarineWorkerSpeak"]:InvokeServer("TravelToSubmergedIsland")
+		return task.wait(1.5)
+	end
+	
+	function PlayerManager:OutSubmerg(Target, HaveSit, BlockingGate, Exclude)
+		if Player:DistanceFromCharacter(Positions.SubmergTarveler) > 5 then
+			return self.__to(CFrame.new(Positions.SubmergTarveler), HaveSit)
+		end
+
+		Net["RF/SubmarineTransportation"]:InvokeServer("InitiateTeleport", "Tiki Outpost")
+		task.wait(1.5)
+
+		return self:Travel(Target, HaveSit, BlockingGate, Exclude)
+	end
 
     function PlayerManager:Travel(Target, HaveSit, BlockingGate, Exclude)
         if not PlayerManager:IsAlive() then return end
@@ -2020,7 +2099,7 @@ Module.PlayerManager = (function()
             Target = CFrame.new(Target)
         end
 
-        if Player:DistanceFromCharacter(Target.Position) <= 750 then
+		if Player:DistanceFromCharacter(Target.Position) <= 750 then
             return self.__to(Target, HaveSit)
         end
 
@@ -2036,27 +2115,12 @@ Module.PlayerManager = (function()
         local IsTargetAtSubmerg = GateModule:IsAtSubmergIsland(Target.Position)
         local IsPlayerAtSubmerg = GateModule:IsAtSubmergIsland(PrimaryPart.Position)
 
-        if IsTargetAtSubmerg and not IsPlayerAtSubmerg then
-            if Player:DistanceFromCharacter(Positions.SubmarineWorker) > 5 then
-                return self:Travel(Positions.SubmarineWorker, HaveSit, {
-                    ['Tiki outpos [ Submerg ]'] = true,
-                    ['Submerg Island'] = true
-                })
-            end
-
-            Net["RF/SubmarineWorkerSpeak"]:InvokeServer("TravelToSubmergedIsland")
-            return task.wait(1.5)
+		if IsTargetAtSubmerg and not IsPlayerAtSubmerg then
+			return self:ToSubmerg(HaveSit)
         end
 
-        if IsPlayerAtSubmerg and not IsTargetAtSubmerg then
-            if Player:DistanceFromCharacter(Positions.SubmergTarveler) > 5 then
-                return self.__to(CFrame.new(Positions.SubmergTarveler), HaveSit)
-            end
-
-            Net["RF/SubmarineTransportation"]:InvokeServer("InitiateTeleport", "Tiki Outpost")
-            task.wait(1.5)
-
-            return self:Travel(Target, HaveSit, BlockingGate, Exclude)
+		if IsPlayerAtSubmerg and not IsTargetAtSubmerg then
+			return self:OutSubmerg(Target, HaveSit, BlockingGate, Exclude)
         end
 
         local IsTargetAtDimension = GateModule:IsAtMirrorDimension(Target.Position)
@@ -2085,7 +2149,7 @@ Module.PlayerManager = (function()
             return task.wait(0.5) 
         end
 
-        if Route.Type == "Direct" then
+		if Route.Type == "Direct" then
             return self.__to(Target, HaveSit)
         end
 
@@ -2102,7 +2166,17 @@ Module.PlayerManager = (function()
             if Player:DistanceFromCharacter(Vector3.new(28607, 14897, 106)) > 5 then
                 return self.__to(CFrame.new(28607, 14897, 106), HaveSit)
             end
-        elseif Player:DistanceFromCharacter(GateIn) > 5 then
+		elseif Player:DistanceFromCharacter(GateIn) > 5 then -- Bug Here
+			local IsGateInAtSubmerg = GateModule:IsAtSubmergIsland(GateIn)
+			
+			if IsGateInAtSubmerg and not IsPlayerAtSubmerg then
+				return self:ToSubmerg(HaveSit)
+			end
+			
+			if IsPlayerAtSubmerg and not IsGateInAtSubmerg then
+				return self:OutSubmerg(Target, HaveSit, BlockingGate, Exclude)
+			end
+			
             return self.__to(GateIn, HaveSit)
         end
 
@@ -2316,7 +2390,8 @@ Module.CooldownService = (function()
         CooldownService.__ToolTips = {}
         CooldownService.__Backlist = {
             ['Portal'] = { "C", "V" },
-            ['Buddha'] = { "Z" }
+			['Buddha'] = { "Z" },
+			['Lightning'] = { "Z" }
         }
     end
 
@@ -3218,14 +3293,14 @@ Module.StaticsModule = (function()
 
         for i = 1, #Objects do
             local Fruit = Objects[i]
-
             if not Fruit.Name:find("Fruit") then continue end
 
             local Handle = Fruit:FindFirstChild("Handle")
             if not Handle then continue end
 
+			if not Fruit:GetAttribute('OriginalName') then continue end
             if StaticsModule:IsOnWater(Handle.Position) then continue end
-            if GateModule:IsAtSubmergIsland(Handle.Position) then continue end
+			if GateModule:IsAtSubmergIsland(Handle.Position) then continue end
 
             local Magnitude = Player:DistanceFromCharacter(Handle.Position)
 
@@ -3477,7 +3552,7 @@ Module.LeviathanService = (function()
     function LeviathanService:GetLeviathanHead()
         for _, Leviathan in SeaBeasts:GetChildren() do
             if Leviathan.Name == "Leviathan" and Module:IsAlive(Leviathan) then
-                return Leviathan:FindFirstChild("Head")
+                return Leviathan:FindFirstChild("HumanoidRootPart")
             end
         end
     end
@@ -3926,7 +4001,7 @@ Module.HunterService = (function()
         end
 
         return false
-    end
+	end
 
     function HunterService:ProcessPlayers()
         local PlayerList = Players:GetPlayers()
@@ -4150,55 +4225,23 @@ Module.NpcService = (function()
     return NpcService
 end)()
 
+
 Module.ServerManager = (function()
-    local Alphabet = Module:Import('Modules/Alphabet')()
-    local AlphabetSecret = HIDDEN_SETTINGS.APL_SECRET
+    local ServerManager = {
+        Cached = {},
+    }
 
-    local Request = clonefunction(request)
-    local __ServerBrowser = ReplicatedStorage:WaitForChild('__ServerBrowser')
+    local ServerBrowser = ReplicatedStorage:WaitForChild("__ServerBrowser")
 
-    local ServerManager = {} do
-        ServerManager.Url = "http://163.223.9.144/boss/%s"
-        ServerManager.LastTokens = {}
-        ServerManager.LastJoin = 0
-        ServerManager.JoinCooldown = 1
+    local function NewAdded(JobId, Query)
+        local Region = Query.Region
+        if not Region then return end
 
-        ServerManager.NAME_TAGES = {
-            Island = {
-                "Prehistoric Island", "Kitsune Shrine", "Mirage Island",
-            },
-            Boss = {
-                "Tyrant of the Skies", "Cursed Captain", "Soul Reaper",
-                "Cake Prince", "Dough King", "Darkbeard", "Rip Indra", "Elite",
-            },
-            Items = {
-                "Legendary Sword", "Devil Fruits", "Berries",
-            },
-            Events = {
-                "Legendary Haki", "Closest Fullmoon", "Pirate Raid", "The Fullmoon",
-            },
-        }
+        if not ServerManager.Cached[Region] then
+            ServerManager.Cached[Region] = {}
+        end
 
-        ServerManager.Tags = {
-            ['Prehistoric Island'] = "PrehistoricIsland",
-            ['Tyrant of the Skies'] = "TyrantOfTheSkies",
-            ['Legendary Sword'] = "SwordLegendary",
-            ['Legendary Haki'] = "HakiLegendary",
-            ['Kitsune Shrine'] = "KitsuneIsland",
-            ['Cursed Captain'] = "CursedCaptain",
-            ['Closest Fullmoon'] = "NearMoon",
-            ['Soul Reaper'] = "SoulReaper",
-            ['Cake Prince'] = "CakePrince",
-            ['Pirate Raid'] = "CastleRaid",
-            ['The Fullmoon'] = "Fullmoon",
-            ['Mirage Island'] = "Mirage",
-            ['Dough King'] = "DoughKing",
-            ['Devil Fruits'] = "Fruits",
-            ['Darkbeard'] = "Darkbeard",
-            ['Rip Indra'] = "RipIndra",
-            ['Berries'] = "Berry",
-            ['Elite'] = "Elite",
-        }
+        ServerManager.Cached[Region][JobId] = Query
     end
 
     local function Notify(Title, Text)
@@ -4209,95 +4252,79 @@ Module.ServerManager = (function()
         })
     end
 
-    function ServerManager:GetTagged(Tag)
-        local Tagged = self.Tags[Tag]
-        if not Tagged then
-            return nil
+    function ServerManager:UpdateServer(Count)
+        table.clear(self.Cached)
+        Count = Count or 50
+
+        for i = 1, Count do
+            local Success, Result = pcall(function()
+                return ServerBrowser:InvokeServer(i)
+            end)
+
+            if Success and type(Result) == "table" then
+                for JobId, Query in pairs(Result) do
+                    if type(Query) == "table" then
+                        NewAdded(JobId, Query)
+                    end
+                end
+            end
         end
 
-        return self.Url:format(Tagged)
+        return self.Cached
     end
 
-    function ServerManager:GetServer(Name)
-        local Tag = self:GetTagged(Name)
-        if not Tag then
-            return nil
+    function ServerManager:GetServerByRegions(Regions, MaxPlayers)
+        local BestServer = nil
+        local MinCount = math.huge
+
+        MaxPlayers = MaxPlayers or 12
+
+        for Region, Servers in pairs(self.Cached) do
+            if not table.find(Regions, Region) then
+                continue
+            end
+
+            for JobId, Data in pairs(Servers) do
+                local PlayerCount = tonumber(Data.Count)
+
+                if JobId == game.JobId then continue end
+                if not PlayerCount then continue end
+                if PlayerCount >= MaxPlayers then continue end
+
+                if PlayerCount < MinCount then
+                    BestServer = JobId
+                    MinCount = PlayerCount
+                end
+            end
         end
 
-        local Success, Result = pcall(Request, {
-            Url = Tag,
-            Method = "GET",
-            Headers = {
-                ["Content-Type"] = "application/json"
-            }
-        })
-
-        if not Success or not Result then
-            return nil
-        end
-
-        local Body = type(Result) == "table" and Result.Body or Result
-        if type(Body) ~= "string" then
-            return nil
-        end
-
-        local DecodeSuccess, Decode = pcall(function()
-            return HttpService:JSONDecode(Body)
-        end)
-
-        if not DecodeSuccess or type(Decode) ~= "table" then
-            return nil
-        end
-
-        local Servers = Decode.data
-        if type(Servers) ~= "table" then
-            return nil
-        end
-
-        local TargetName = self.Tags[Name]
-        local LastToken = self.LastTokens[Name]
-        local BestToken, MinPlayers = nil, math.huge
-
-        for _, Data in ipairs(Servers) do
-            if type(Data) ~= "table" then continue end
-            if Data.Name ~= TargetName then continue end
-            if type(Data.Players) ~= "number" then continue end
-            if type(Data.JobId) ~= "string" then continue end
-            if Data.JobId == LastToken then continue end
-            if Data.Players >= MinPlayers then continue end
-            if Data.Sea ~= workspace:GetAttribute('MAP') then continue end
-            if game.JobId == Alphabet.Reverse(Data.JobId, AlphabetSecret) then continue end
-
-            BestToken, MinPlayers = Data.JobId, Data.Players
-        end
-
-        return BestToken
+        return BestServer, MinCount
     end
 
-    function ServerManager:ToServer(Target)
-        local CurrentTime = os.clock()
+    function ServerManager:HopServerByRegions(Regions)
+        local Success, Result = pcall(function()
+            self:UpdateServer(100)
 
-        if CurrentTime - self.LastJoin < self.JoinCooldown then
-            return Notify("Server Manager", "In Cooldown")
+            local Server, Count = self:GetServerByRegions(
+                Regions or { "Singapore, North West" }
+            )
+
+            if not Server then
+                Notify("Server", "Not found.")
+                return false
+            end
+
+            Notify("Join", "Joining server. Players: " .. Count)
+
+            return ServerBrowser:InvokeServer("teleport", Server)
+        end);task.wait(0.25)
+
+        if not Success then
+            GuiService:ClearError()
+            Notify("Server", "Teleport failed.")
         end
 
-        local Token = self:GetServer(Target)
-
-        if not Token then
-            return Notify("Server Manager", "Server Not Found")
-        end
-
-        local DecodedToken = Alphabet.Reverse(Token, AlphabetSecret)
-        if not DecodedToken then
-            return Notify("Server Manager", "Alphabet Failed")
-        end
-
-        self.LastJoin = CurrentTime
-        self.LastTokens[Target] = Token
-
-        Notify("Server Manager", "Joining Server ...")
-
-        return __ServerBrowser:InvokeServer("teleport", DecodedToken)
+        return true
     end
 
     return ServerManager
@@ -4849,4 +4876,454 @@ Module.MasteryModule = (function()
     end
 
     return MasteryModule
+end)()
+
+Module.DialogManager = (function()
+    local DialogManager = {}
+    local DialogueController = require(ReplicatedStorage.DialogueController)
+
+    function DialogManager:GetCurrentDialog(Name)
+        local ActiveDialogue = DialogueController.getActiveDialogue()
+        if not ActiveDialogue then return end
+
+        local CurrentDialogue = ActiveDialogue:getCurrent()
+        if not CurrentDialogue then return end
+
+        if ActiveDialogue._title == Name then 
+            return CurrentDialogue
+        end
+    end
+
+    function DialogManager:GetDialogHeader()
+        local ActiveDialogue = DialogueController.getActiveDialogue()
+        if not ActiveDialogue then return end
+
+        local CurrentDialogue = ActiveDialogue:getCurrent()
+        if not CurrentDialogue then return end
+
+        return ActiveDialogue._title
+    end
+
+    function DialogManager:Select(Current, Name)
+        for _, Option in Current._options do
+            if string.find(Option._text[1], Name, 1, true) then
+                return DialogueController.select(Option)
+            end
+        end
+    end
+
+    function DialogManager:SelectByIndex(Current, Index)
+        if Current._options[ Index ] then
+            DialogueController.select(Current._options[ Index ]) 
+        end
+    end
+
+    function DialogManager:Continue()
+        return DialogueController.advance()
+    end
+
+    function DialogManager:Nevermind()
+        if DialogueController.getActiveDialogue() then
+            DialogueController.close()
+        end
+    end
+
+    function DialogManager:FastFallback()
+        local ActiveDialogue = DialogueController.getActiveDialogue()
+        if not ActiveDialogue then return end
+
+        local CurrentDialogue = ActiveDialogue:getCurrent()
+        if not CurrentDialogue then return end
+
+        self:Continue();task.wait(0.25)
+        return DialogManager:SelectByIndex(CurrentDialogue, 1)
+    end
+
+    function DialogManager:FastDialog(Title, Option)
+        local Current = self:GetCurrentDialog(Title)
+        if not Current then return end
+
+        self:Continue();task.wait(0.25)
+
+        if type(Option) == 'number' then
+            return self:SelectByIndex(Current, Option)
+        end
+
+        return self:Select(Current, Option)
+    end
+
+    return DialogManager
+end)()
+
+Module.HalloweenModule = (function()
+    local DialogManager = Module.DialogManager
+    local PlayerManager = Module.PlayerManager
+
+    local HalloweenModule = {} do
+        HalloweenModule.Cached = {}
+    end
+
+    local HalloweenEvent = Remotes:WaitForChild('HalloweenEvent', 5)
+    local HalloweenFunction = Remotes:WaitForChild('HalloweenFunction', 5)
+
+    HalloweenModule.DoorQuest = {
+        ['Burglar Bert'] = function()
+            DialogManager:FastDialog("Burglar Bert", 'Hand')
+        end,
+        ['Detective'] = function()
+            DialogManager:Nevermind()
+        end,
+        ['Witch'] = function()
+            DialogManager:Nevermind()
+        end,
+        ['Grim the Gravedigger'] = function()
+            DialogManager:FastDialog("Grim the Gravedigger", math.random(1, 4))
+        end,
+        ['Hooded Attendant'] = function()
+            DialogManager:FastDialog("Hooded Attendant", 1)
+        end,
+        ['Shipwright'] = function()
+            DialogManager:FastDialog("Shipwright", 1)
+        end,
+        ['rip_indra'] = function()
+            DialogManager:FastDialog("rip_indra", 1)
+        end,
+        ['Zioles'] = function()
+            DialogManager:FastDialog("Zioles", 1)
+        end,
+        ['Turtle Island Encounter'] = function()
+            DialogManager:Continue()
+        end,
+    }
+
+    function HalloweenModule:GetClosestDoor()
+        local Nearest, Distance = nil, math.huge
+
+        for i = 1, #self.Cached do
+            local Door = self.Cached[i]
+            local Cooldown = Door:GetAttribute("CooldownUntil")
+
+            if Door:GetAttribute("DoorOpen") then continue end
+            if Cooldown and workspace:GetServerTimeNow() < Cooldown then continue end
+
+            local Magnitude = Player:DistanceFromCharacter(Door:GetPivot().Position)
+
+            if Magnitude < Distance then
+                Nearest, Distance = Door, Magnitude
+            end
+        end
+
+        return Nearest, Distance
+    end
+
+    function HalloweenModule:GetCandySpillFolder()
+        for _, Folder in workspace:GetChildren() do
+            if not Folder.Name:find('CandySpill') then
+                continue
+            end
+
+            local Owner = Folder:GetAttribute('SpillOwner')
+            if not Owner then continue end
+
+            if Owner == Player.UserId then
+                return Folder
+            end
+        end
+    end
+
+    function HalloweenModule:GetCandySpill()
+        local Folder = self:GetCandySpillFolder()
+        if not Folder then return end
+
+        local Nearest, Distance = nil, math.huge
+
+        for Name, Candy in Folder:GetAttributes() do
+            if Candy == nil then continue end
+            if not Name:find('Candy') then continue end
+            if typeof(Candy) ~= 'Vector3' then continue end
+
+            local Magnitude = Player:DistanceFromCharacter(Candy)
+            if Magnitude < Distance then
+                Nearest, Distance = Candy, Magnitude
+            end
+        end
+
+        return Nearest
+    end
+
+    function HalloweenModule:GetHellfireDoor()
+        local Nearest, Distance = nil, math.huge
+
+        for i = 1, #self.Cached do
+            local Door = self.Cached[i]
+
+            local HellfireBorder = Door:FindFirstChild('HellfireBorder')
+            if not HellfireBorder then continue end
+
+            local Magnitude = Player:DistanceFromCharacter(Door:GetPivot().Position)
+
+            if Magnitude < Distance then
+                Nearest, Distance = Door, Magnitude
+            end
+        end
+
+        return Nearest, Distance
+    end
+
+    function HalloweenModule:GetClosestPumpkin()
+        local PumpkinHunt = workspace:FindFirstChild('PumpkinHunt')
+        if not PumpkinHunt then return end
+
+        local Nearest, Distance = nil, math.huge
+        local Pumpkins = PumpkinHunt:GetChildren()
+
+        for i = 1, #Pumpkins do
+            local Pumpkin = Pumpkins[i]
+            if not Pumpkin.Parent then continue end
+
+            local PrimaryPart = Pumpkin.PrimaryPart
+            if not PrimaryPart then continue end
+
+            local PumpkinState = Pumpkin:GetAttribute('PumpkinState')
+            if PumpkinState and PumpkinState ~= 'Idle' then continue end
+
+            local Magnitude = Player:DistanceFromCharacter(PrimaryPart.Position)
+            if Magnitude < Distance then
+                Nearest, Distance = Pumpkin, Magnitude
+            end
+        end
+
+        return Nearest, Distance
+    end
+
+    function HalloweenModule:GetLocalEnemies()
+        local Distance, Nearest = math.huge, nil
+        local EnemiesList = Enemies:GetChildren()
+
+        for i = 1, #EnemiesList do
+            local Enemy = EnemiesList[i]
+
+            local LocalEnemy = Enemy:GetAttribute('LocalEnemy')
+            if not LocalEnemy then continue end
+
+            if tostring(LocalEnemy) ~= Player.Name then continue end
+            if not Enemy.PrimaryPart then continue end
+            if not Module:IsAlive(Enemy) then continue end
+
+            local Magnitude = Player:DistanceFromCharacter(Enemy:GetPivot().Position)
+
+            if Magnitude < Distance then
+                Distance = Magnitude
+                Nearest = Enemy
+            end
+        end
+
+        return Nearest
+    end
+
+    function HalloweenModule:Validate(Filter, Enemy)
+        if Filter == nil then return true end
+
+        if type(Filter) == "table" then
+            return table.find(Filter, Enemy.Name) ~= nil
+        end
+
+        if type(Filter) == "string" then
+            return Enemy.Name == Filter
+        end
+
+        return false
+    end
+
+    function HalloweenModule:IsInModel(Model)
+        if not PrimaryPart then return end
+
+        Character = Player.Character
+        if not Character then return end
+
+        local CFrames, Size = Model:GetBoundingBox()
+        local Position = CFrames:PointToObjectSpace(Character:GetPivot().Position)
+
+        return math.abs(Position.X) <= Size.X / 2 
+            and math.abs(Position.Y) <= Size.Y / 2 
+            and math.abs(Position.Z) <= Size.Z / 2
+    end
+
+    function HalloweenModule:GetClosestRarePumpkin()
+        local PumpkinHunt = workspace:FindFirstChild('PumpkinHunt')
+        if not PumpkinHunt then return end
+
+        local Nearest, Distance = nil, math.huge
+        local Pumpkins = PumpkinHunt:GetChildren()
+
+        for i = 1, #Pumpkins do
+            local Pumpkin = Pumpkins[i]
+
+            if not Pumpkin.Parent then continue end
+            if not Pumpkin:GetAttribute('PumpkinRare') then continue end
+
+            local PrimaryPart = Pumpkin.PrimaryPart
+            if not PrimaryPart then continue end
+
+            local PumpkinState = Pumpkin:GetAttribute('PumpkinState')
+            if PumpkinState and PumpkinState ~= 'Idle' then continue end
+
+            local Magnitude = Player:DistanceFromCharacter(PrimaryPart.Position)
+            if Magnitude < Distance then
+                Nearest, Distance = Pumpkin, Magnitude
+            end
+        end
+
+        return Nearest, Distance
+    end
+
+    function HalloweenModule:GetGhostCandy(GhostChase)
+        local Nearest, Distance = nil, math.huge
+
+        for _, Candy in GhostChase:GetChildren() do
+            if not Candy:IsA("BasePart") then continue end
+            local Magnitude = Player:DistanceFromCharacter(Candy.Position)
+            if Magnitude < Distance then
+                Nearest, Distance = Candy, Magnitude
+            end
+        end
+
+        return Nearest
+    end
+
+    function HalloweenModule:HandleHellfire(Enemy, Break)
+        if not PlayerManager:IsAlive() or not Module:IsAlive(Enemy) then
+            return false
+        end
+
+        repeat Heartbeat:Wait()
+            local Weapon = Settings["Select Weapon"] or "Melee"
+
+            local RootPart = Enemy:FindFirstChild("HumanoidRootPart")
+            if not RootPart then continue end
+
+            PlayerManager:EnabledBuso()
+            PlayerManager:EquipTool(Weapon, true)
+
+            Module.BladeHits:SendHits(Enemy, {})
+            PlayerManager:Travel(RootPart.CFrame - Vector3.new(0, 25, 0))
+        until not _ENV.OnFarm or (Break and Break()) or not Module:IsAlive(Enemy) or not PlayerManager:IsAlive()
+    end
+
+    function HalloweenModule:HandleGreatPumpkin(Enemy, Break)
+        if not PlayerManager:IsAlive() or not Module:IsAlive(Enemy) then
+            return false
+        end
+
+        repeat Heartbeat:Wait()
+            local Weapon = Settings["Select Weapon"] or "Melee"
+
+            local RootPart = Enemy:FindFirstChild("HumanoidRootPart")
+            if not RootPart then continue end
+
+            PlayerManager:EnabledBuso()
+            PlayerManager:EquipTool(Weapon, true)
+            PlayerManager:Travel(RootPart.CFrame)
+        until not _ENV.OnFarm or (Break and Break()) or not Module:IsAlive(Enemy) or not PlayerManager:IsAlive()
+    end
+
+    for _, Door in Map:GetDescendants() do
+        if Door.Name == 'HalloweenDoor' then
+            table.insert(HalloweenModule.Cached, Door)
+        end
+    end
+
+    return HalloweenModule
+end)()
+
+Module.FishingModule = (function()
+    local FishingModule = {}
+
+    function FishingModule:ShakeRod(Time)
+        VirtualInputManager:SendMouseButtonEvent(0, 0, 0, true, game, 1);task.wait(Time or 0.05)
+        VirtualInputManager:SendMouseButtonEvent(0, 0, 0, false, game, 1)
+    end
+
+    function FishingModule:GetCurrentRod()
+        local Character = Player.Character
+        if not Character then return end
+
+        for _, Rod in Character:GetChildren() do
+            if Rod:IsA("Tool") and Rod:FindFirstChild("FishingRodData") then
+                return Rod
+            end
+        end
+    end
+
+    function FishingModule:CompleteMinigame(Reeling)
+        local Minigame = Reeling:FindFirstChild("Minigame")
+        if not Minigame then return end
+
+        local Container = Minigame:FindFirstChild("Container")
+        if not Container then return end
+
+        local Treasure = Container:FindFirstChild("Treasure")
+        local Fish = Container:FindFirstChild("Fish")
+
+        local Target = Treasure and Treasure.Visible and Treasure or Fish
+        local ReelZone = Container:FindFirstChild("ReelZone")
+
+        if ReelZone and Target and Target.Visible then
+            local TargetPositionScale = Target.Position.X.Scale
+            local TargetSizeScale = Target.Size.X.Scale
+
+            local ZonePositionScale = ReelZone.Position.X.Scale
+            local ZoneSizeScale = ReelZone.Size.X.Scale
+
+            local TargetToAbs2D = (TargetPositionScale + TargetSizeScale * 0.5)
+            local ZoneToAbs2D  = (ZonePositionScale + ZoneSizeScale * 0.5)
+
+            local Offset = TargetToAbs2D - ZoneToAbs2D
+
+            if Offset > 0.03 then
+                VirtualInputManager:SendMouseButtonEvent(0, 0, 0, true, game, 1)
+            elseif Offset < -0.03 then
+                VirtualInputManager:SendMouseButtonEvent(0, 0, 0, false, game, 1)
+            else self:ShakeRod(0.03) end
+        else
+            self:ShakeRod(0.03)
+        end
+    end
+
+    return FishingModule
+end)()
+
+Module.EquipmentModule = (function()
+    local EquipmentModule = {}
+
+    local PlayerManager = Module.PlayerManager
+    local ItemsService = Module.ItemsService
+    local NpcService = Module.NpcService
+
+    local Fightings = {
+        ["Black Leg"] = "Dark Step Teacher",
+        ["Electro"] = "Mad Scientist",
+        ["Fishman Karate"] = "Water Kung-fu Teacher",
+        ["Dragon Claw"] = "Sabi",
+        ["Superhuman"] = "Martial Arts Master",
+        ["Death Step"] = "Phoeyu, the Reformed",
+        ["Sharkman Karate"] = "Sharkman Teacher",
+        ["Electric Claw"] = "Previous Hero",
+        ["Dragon Talon"] = "Uzoth",
+        ["Godhuman"] = "Ancient Monk",
+        ["Sanguine Art"] = "Shafi",
+    }
+
+    function EquipmentModule:BuyStyle(Name, Npc)
+        local NpcPivot = NpcService:GetNpcPivotByName(Npc)
+        if not NpcPivot then return end
+
+        if Player:DistanceFromCharacter(NpcPivot.Position) > 5 then
+            PlayerManager:Travel(NpcPivot)
+        else Module:ComF(unpack(Name));task.wait(0.5) end
+
+        return true
+    end
+
+    return EquipmentModule
 end)()
