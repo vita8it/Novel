@@ -1139,10 +1139,10 @@ Module.EnemiesModule = (function()
         ["Diablo"] = true,
         ["Urban"] = true,
     }
-
+    
     local EnemiesModule = Module:Dictionary({
         "__CakePrince", "__PirateRaid", "__RaidBoss",
-        "__TyrantSkies", "__Bones", "__Elite", "__Others", 
+        "__TyrantSkies", "__Ectoplasm", "__Bones", "__Elite", "__Others", 
     }, {})
 
     local SeaCastle = CFrame.new(-5556, 314, -2988) do
@@ -1156,7 +1156,8 @@ Module.EnemiesModule = (function()
     local TagsMobs = {
         __Bones = Module:Dictionary({ "Reborn Skeleton", "Living Zombie", "Demonic Soul", "Posessed Mummy" }, true),
         __CakePrince = Module:Dictionary({ "Head Baker", "Baking Staff", "Cake Guard", "Cookie Crafter" }, true),
-        __TyrantSkies = Module:Dictionary({ "Sun-kissed Warrior", "Skull Slayer", "Isle Champion", "Serpent Hunter" }, true)
+        __TyrantSkies = Module:Dictionary({ "Sun-kissed Warrior", "Skull Slayer", "Isle Champion", "Serpent Hunter" }, true),
+        __Ectoplasm = Module:Dictionary({ "Ship Deckhand", "Ship Engineer", "Ship Steward", "Ship Officer" }, true)
     }
 
     local Attachment = Instance.new("Attachment") do
@@ -1931,7 +1932,8 @@ Module.ItemsService = (function()
 end)()
 
 Module.LerpService = (function()
-	local LerpService = {} do
+    local LerpService = {} do
+        LerpService.OnSpawnStop = false
 		LerpService.IsRunning = false
 		LerpService.LastTarget = nil
 		LerpService.LastVelocity = 0
@@ -1950,7 +1952,8 @@ Module.LerpService = (function()
 		LerpService.LastDelta = 0
 	end
 	
-	Connect(Heartbeat, function(Delta)
+    Connect(Heartbeat, function(Delta)
+        if LerpService.OnSpawnStop then return end
 		if not LerpService.LastTarget then return end
 		if not LerpService.IsRunning then return end
 		if not PrimaryPart then return end
@@ -1963,14 +1966,21 @@ Module.LerpService = (function()
 			local Alpha = math.clamp(LerpService.LastVelocity / Distance * Delta, 0, 1)
 			PrimaryPart.CFrame = PrimaryPart.CFrame:Lerp(LerpService.LastTarget, Alpha)
 		end
-	end)
+    end)
+    
+    Connect(Player.CharacterAdded, function()
+        LerpService.OnSpawnStop = true
+        task.wait(1.5)
+        LerpService.OnSpawnStop = false
+    end)
 	
 	return LerpService
 end)()
 
 Module.PlayerManager = (function()
     local PlayerManager = {} do
-        PlayerManager.__IsBringed = false
+        PlayerManager.LastBring = 0
+        PlayerManager.BringCooldown = 0.25
     end
 
     local EnemiesModule = Module.EnemiesModule
@@ -2206,6 +2216,14 @@ Module.PlayerManager = (function()
     end
 
     function PlayerManager:BringEnemies(ToEnemy, CustomCFrame, Distance)
+        local CurrentTime = tick()
+
+        if CurrentTime - PlayerManager.LastBring < PlayerManager.BringCooldown then
+            return nil
+        end
+
+        PlayerManager.LastBring = CurrentTime
+
         if not Module:IsAlive(ToEnemy) or not ToEnemy.PrimaryPart then
             return nil
         end
@@ -2217,20 +2235,21 @@ Module.PlayerManager = (function()
             local Target = CustomCFrame or ToEnemy.PrimaryPart.CFrame
             local MaxDistance = Distance or Settings['Bring Distance']
 
-            if not Cached.Bring[Name] or (Target.Position - Cached.Bring[Name].Position).Magnitude > 25 then
+            if not Cached.Bring[Name] or
+                (Target.Position - Cached.Bring[Name].Position).Magnitude > 25 then
                 Cached.Bring[Name] = Target
             end
 
-            local EnemyList = EnemiesModule:GetTagged(Name) or Enemies:GetChildren()
+            local EnemyList = Enemies:GetChildren()
 
             for i = 1, #EnemyList do
                 local Enemy = EnemyList[i]
 
                 if Enemy.Name == Name and Enemy.Parent == Enemies and not Enemy:HasTag(BRING_TAG) and Enemy:FindFirstChild("CharacterReady") then
-                    local PrimaryPart = Enemy.PrimaryPart
+                    local PrimaryPart_ = Enemy.PrimaryPart
 
-                    if Module:IsAlive(Enemy) and PrimaryPart then
-                        if Player:DistanceFromCharacter(PrimaryPart.Position) < MaxDistance then
+                    if Module:IsAlive(Enemy) and PrimaryPart_ then
+                        if Player:DistanceFromCharacter(PrimaryPart_.Position) < MaxDistance then
                             Enemy.Humanoid.WalkSpeed = 0
                             Enemy.Humanoid.JumpPower = 0
                             Enemy:AddTag(BRING_TAG)
@@ -2328,15 +2347,57 @@ Module.PlayerManager = (function()
             local Target = CFrame.new(HumanoidRootPart.Position + YAxis)
             local Distance = Player:DistanceFromCharacter(Target.Position)
 
-            if Distance <= 20 and not self.__IsBringed then
-                self:BringEnemies(Enemy)
-                self.__IsBringed = EnemiesModule:IsOnRange(2)
+            if Distance <= 20 then
+                PlayerManager:BringEnemies(Enemy)
+            end
+            
+            if Distance > 5 then self:Travel(Target) end
+        until not _ENV.OnFarm or (Break and Break()) or not Module:IsAlive(Enemy) or not self:IsAlive()
+        
+        self.LastBring = 0
+    end
+
+    function PlayerManager:FastFarming(Args)
+        local ToolName, Break, Type = Args.Tool, Args.Break, Args.Type
+        local Enemy = EnemiesModule:GetClosestByTag(Args.Tag)
+
+        if not Enemy or not self:IsAlive() or not Module:IsAlive(Enemy) then
+            return PlayerManager:WaitEnemies(Args.Tag)
+        end
+        
+        if ToolName and not Module.ItemsService:InCharacter(ToolName) then
+            if Module.ItemsService:HaveItem(ToolName) then
+                return Module:ComF("LoadItem", ToolName)
+            end
+        end
+
+        local SpacialKill = self.SpacialKills[ Enemy.Name ]
+
+        repeat Heartbeat:Wait()
+            local HumanoidRootPart = Enemy:FindFirstChild("HumanoidRootPart")
+            if not HumanoidRootPart then break end
+
+            self:EnabledBuso()
+            self:EquipTool(Type, true)
+
+            local Height = self:GetYAxis(Type)
+
+            if SpacialKill == "Below" then
+                Height = -math.abs(Height)
+            end
+
+            local YAxis = Vector3.new(0, Height, 0)
+            local Target = CFrame.new(HumanoidRootPart.Position + YAxis)
+            local Distance = Player:DistanceFromCharacter(Target.Position)
+
+            if Distance <= 20 then
+                PlayerManager:BringEnemies(Enemy)
             end
 
             if Distance > 5 then self:Travel(Target) end
         until not _ENV.OnFarm or (Break and Break()) or not Module:IsAlive(Enemy) or not self:IsAlive()
 
-        self.__IsBringed = false
+        self.LastBring = 0
     end
 
     function PlayerManager:KillPlayer(Enemy, Break)
@@ -2853,6 +2914,7 @@ Module.DevilFruitModule = (function()
     local DevilFruitModule = {} do
         DevilFruitModule.__LastCheck = 0
         DevilFruitModule.__CachedTimeEnds = 0
+        DevilFruitModule.FruitsPrice = {}
     end
 
     function DevilFruitModule.__gettime()
@@ -2949,9 +3011,8 @@ Module.DevilFruitModule = (function()
 
     function DevilFruitModule.__getfruits(IsHigh)
         local Collects, Threshold = {}, 999999
-        local Fruits = Module:ComF("GetFruits")
 
-        for _, Fruit in pairs(Fruits) do
+        for _, Fruit in DevilFruitModule.FruitsPrice do
             local Price = Fruit.Price or 0
             local Name = Fruit.Name or "Unknown"
 
@@ -2983,8 +3044,34 @@ Module.DevilFruitModule = (function()
         local Fruit = self.__getfruit(IsHigh)
         if not Fruit then return end
 
-        return Module:ComF("LoadFruit", Fruit)
+        Module:ComF("LoadFruit", Fruit)
     end
+    
+    task.defer(pcall, function()
+        local ItemConfig = require(ReplicatedStorage.ItemConfig)
+
+        for _, Data in ItemConfig.Query.select({ Index = { IdType = "Moveset" } }) do
+            local Moveset = Data.Moveset
+
+            if not Moveset then continue end
+            if not Moveset.Physical then continue end
+
+            local Physical = ItemConfig.tryGet(Moveset.Physical)
+            if not Physical then continue end
+
+            local Quality = Physical.Quality
+            if not Quality then continue end
+
+            local Price = Quality.MoneyPrice
+            if not Price or type(Price) ~= "number" then continue end
+            if Price <= 1000 then continue end
+
+            table.insert(DevilFruitModule.FruitsPrice, {
+                Name = Data.Index.StorageKey,
+                Price = Price
+            })
+        end
+    end)
 
     return DevilFruitModule
 end)()
@@ -4471,7 +4558,7 @@ Module.VisualManager = (function()
             return Fruit.Name
         end
 
-        return FruitName .. " [ Spawned ]"
+        return FruitName
     end
 
     function VisualManager.NewChests()
@@ -4548,12 +4635,12 @@ Module.VisualManager = (function()
     VisualManager:AddEsp("Devil Fruits", {
         Color = Color3.fromRGB(255, 0, 0),
         Root = workspace,
-        Valid = function(Fruit) return Fruit.Name:find("Fruit", 1, true) ~= nil end,
+        Valid = function(Fruit) return Fruit.Name:find("Fruit", 1, true) ~= nil and Fruit:FindFirstChild("Handle") end,
         Label = function(Fruit) return VisualManager:ToBloxFruit(Fruit) end,
     })
 
     VisualManager:AddEsp("Sea Beast", {
-        Color = Color3.fromRGB(0, 85, 127),
+        Color = Color3.fromRGB(0, 0, 255),
         Root = function() return SeaBeasts end,
         Valid = function(SeaBeast)
             local Health = SeaBeast:IsA("Model") and SeaBeast:FindFirstChild("Health")
@@ -4858,9 +4945,8 @@ Module.MasteryModule = (function()
 
             PlayerManager:EquipTool(ActiveTool, true)
 
-            if Distance <= 20 and not self.__IsBringed then
+            if Distance <= 20 then
                 PlayerManager:BringEnemies(Enemy)
-                self.__IsBringed = EnemiesModule:IsOnRange(2)
             end
 
             if Distance <= 5 and SkillReady then
@@ -4871,8 +4957,8 @@ Module.MasteryModule = (function()
                 PlayerManager:Travel(Target)
             end
         until self:ShouldBreak(Enemy, Break)
-
-        self.__IsBringed = false
+        
+        PlayerManager.LastBring = 0
     end
 
     return MasteryModule
@@ -5326,4 +5412,20 @@ Module.EquipmentModule = (function()
     end
 
     return EquipmentModule
+end)()
+
+Module.SecretModule = (function()
+    local GameInfo = Module.GameInfo
+    
+    local SecretModule = {}
+    
+    function SecretModule:GetDarkCloud(SkyIsland)
+        for _, Cloud in SkyIsland:GetChildren() do
+            if Cloud.Name == 'cloud' and Cloud:FindFirstChildOfClass('Sound') then
+               return Cloud
+            end
+        end
+    end
+    
+    return SecretModule
 end)()
