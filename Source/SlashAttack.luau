@@ -94,14 +94,25 @@ _ENV.SLASH_ATTACK = function()
     if not Titans then return end
     
     local Targets = {} do
-        for _, Titan in Titans:GetChildren() do
-            local Nape = Titan.Hitboxes and Titan.Hitboxes.Hit and Titan.Hitboxes.Hit.Nape
-            local TitanHum = Titan:FindFirstChildOfClass('Humanoid')
-            if not (Nape and TitanHum and TitanHum.Health > 0) then continue end
+    for _, Titan in Titans:GetChildren() do
+        local Nape = Titan.Hitboxes and Titan.Hitboxes.Hit and Titan.Hitboxes.Hit.Nape
+        local TitanHum = Titan:FindFirstChildOfClass('Humanoid')
+        if not (Nape and TitanHum and TitanHum.Health > 0) then continue end
 
-            Targets[#Targets + 1] = Nape
-        end 
+        Targets[#Targets + 1] = {
+            Nape = Nape,
+            Distance = (Nape.Position - RootPart.Position).Magnitude
+        }
     end
+
+    table.sort(Targets, function(A, B)
+        return A.Distance < B.Distance
+    end)
+
+    for Index, Entry in Targets do
+        Targets[Index] = Entry.Nape
+    end
+end
 
     if #Targets ~= 0 then
         Settings.Guard = 0
