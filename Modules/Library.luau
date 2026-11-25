@@ -754,7 +754,7 @@ function Module:Window(Args)
 				Size = UDim2.new(1, -30, 1, 0),
 				Selectable = false,
 				FontFace = Module.FontMedium,
-				Text = "Tasks",
+				Text = Title,
 				TextColor3 = TextColor,
 				TextSize = 12,
 				TextXAlignment = TextXAlignment.Left,
