@@ -2006,7 +2006,7 @@ function Module:Window(Args)
 				BackgroundTransparency = 1,
 				Name = "Title",
 				Parent = Contents,
-				Size = UDim2.new(1, 0, 0, 0),
+				Size = UDim2.new(1, -10, 0, 0),
 				Selectable = false,
 				FontFace = Module.FontMedium,
 				RichText = true,
@@ -2031,11 +2031,12 @@ function Module:Window(Args)
 				Size = UDim2.new(1, -10, 0, 0),
 				Selectable = false,
 				FontFace = Module.FontMedium,
-				Text = "Nothing runnings",
+				Text = "Nothing running.",
 				TextColor3 = Color3.fromRGB(255, 255, 255),
 				TextSize = 8,
 				TextTransparency = 0.5,
-				TextXAlignment = TextXAlignment.Left
+				TextXAlignment = TextXAlignment.Left,
+				TextTruncate = TextTruncate.AtEnd,
 			})
 			
 			function Window:WatermarkTitle(Text)
