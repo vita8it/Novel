@@ -240,7 +240,8 @@ Module:NewModule("AssetModule", function()
 
 	local AssetModule = {
 		Folder = "NVLBanners",
-		Saveds = {}
+		Saveds = {},
+		Init = {}
 	}
 
 	local Initialize = {
@@ -259,19 +260,46 @@ Module:NewModule("AssetModule", function()
 		Dungeon = {150, CDN:format("HalloweenScientist3.png")}
 	}
 
-	function AssetModule:Download(Url, Name)
-		local Success, Data = pcall(game.HttpGet, game, Url)
+	if not isfolder(AssetModule.Folder) then
+		makefolder(AssetModule.Folder)
+	end
 
-		if Success and Data then
-			writefile(Name, Data)
+	function AssetModule:Download(Url, Name)
+		local Path = self.Folder .. "/" .. Name
+
+		if isfile(Path) then
 			self.Saveds[Name] = true
+			return true
 		end
+
+		local Success, Data = pcall(function()
+			return game:HttpGet(Url)
+		end)
+
+		if not Success or not Data or #Data == 0 then
+			warn("Download Failed:", Name)
+			return false
+		end
+
+		local Saved, Error = pcall(function()
+			writefile(Path, Data)
+		end)
+
+		if not Saved then
+			warn("Save Failed:", Name, Error)
+			return false
+		end
+
+		self.Saveds[Name] = true
+		return true
 	end
 
 	function AssetModule:GetAssetByName(Name)
-		if self.Saveds[Name] or isfile(Name) then
+		local Path = self.Folder .. "/" .. Name
+
+		if isfile(Path) then
 			self.Saveds[Name] = true
-			return getcustomasset(Name)
+			return getcustomasset(Path)
 		end
 
 		return 0
@@ -280,11 +308,11 @@ Module:NewModule("AssetModule", function()
 	for Name, Asset in Initialize do
 		if type(Asset[2]) == "string" then
 			task.spawn(function()
-				AssetModule:Download(Asset[2], AssetModule.Folder .. "/" .. Name)
+				AssetModule:Download(Asset[2], Name)
 			end)
 		end
 	end
-	
+
 	AssetModule.Init = Initialize
 	return AssetModule
 end)
@@ -737,7 +765,9 @@ Module:NewModule("Plugins", function()
             end
             
             Managers:Banner()
-        end
+		end
+		
+		Managers:Select()
     end
 
     function Plugins:Managers()
