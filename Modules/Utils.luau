@@ -234,6 +234,61 @@ Module:NewModule("Configurations", function()
     return Configurations
 end)
 
+Module:NewModule("AssetModule", function()
+	local Url = "https://136474-2.myshopify.com/cdn/shop/articles/%s"
+	local CDN = "https://cdn.shopify.com/s/files/1/0830/7635/0259/files/%s"
+
+	local AssetModule = {
+		Folder = "NVLBanners",
+		Saveds = {}
+	}
+
+	local Initialize = {
+		Race = {70, 137452595842994},
+		Controller = {130, 111496728621474},
+		SeaEvent = {150, 81613683312286},
+		Items = {150, 100041896541168},
+		Mastery = {150, Url:format("hahahafwad.png")},
+		Standard = {100, CDN:format("1stSeaGlobe2.png?v=1785424427")},
+		Hunter = {150, Url:format("PvpChanges1_28beddc5-31e5-4702-8fd1-bf21be6bc162.png")},
+		Specials = {150, CDN:format("LightningStorm.png")},
+		Teleport = {150, Url:format("Untitled973_20260612083614_21229c1b-619e-4270-9dec-f15af700d604.png")},
+		Task = {150, CDN:format("1stSeaMansion.png?v=1785454983")},
+		Equipment = {150, CDN:format("BlacksmithSmithing.png")},
+		Halloween = {150, CDN:format("HalloweenTrickorTreating2.png")},
+		Dungeon = {150, CDN:format("HalloweenScientist3.png")}
+	}
+
+	function AssetModule:Download(Url, Name)
+		local Success, Data = pcall(game.HttpGet, game, Url)
+
+		if Success and Data then
+			writefile(Name, Data)
+			self.Saveds[Name] = true
+		end
+	end
+
+	function AssetModule:GetAssetByName(Name)
+		if self.Saveds[Name] or isfile(Name) then
+			self.Saveds[Name] = true
+			return getcustomasset(Name)
+		end
+
+		return 0
+	end
+
+	for Name, Asset in Initialize do
+		if type(Asset[2]) == "string" then
+			task.spawn(function()
+				AssetModule:Download(Asset[2], AssetModule.Folder .. "/" .. Name)
+			end)
+		end
+	end
+	
+	AssetModule.Init = Initialize
+	return AssetModule
+end)
+
 Module:NewModule("GoodQueue", function()
     local Queueable = {}
     Queueable.__index = Queueable
@@ -563,7 +618,7 @@ Module:NewModule("Plugins", function()
         self.Threads = Queueable.Threads
 
         self.Library = Novel:Window({
-            Title = Args[1] or "[ 🎃 ] Novel's official",
+            Title = Args[1] or "Novel's official",
             Footer = Args[2] or "Made by vita8it",
         })
 
@@ -571,18 +626,25 @@ Module:NewModule("Plugins", function()
     end
 
     function Plugins:MakeTab(Args, Select)
-        return self.Library:MakeTab({
+		return self.Library:MakeTab({
             Title = Args[1],
-            Footer = Args[2] or Plugins.Add("Automatically", "อัตโนมัติ"),
+			TextColor = Args[2],
             Icon = Args[3],
         })
-    end
+	end
+	
+	function Plugins:MakeBanner(Tab, Args)
+		return Tab:SectionBanner({
+			Title = Args[1],
+			Banner = Args[2],
+			Size = Args[3] or 150
+		})
+	end
 
     function Plugins:TextLabel(Section, Args, Extens)
         return Section:TextLabel({
             Title = Args[1],
             Footer = Args[2],
-            Icon = Args[3],
             Text = Extens
         })
     end
@@ -591,8 +653,6 @@ Module:NewModule("Plugins", function()
         return Section:Button({
             Title = Args[1],
             Footer = Args[2],
-            Icon = Args[3],
-            ButtonIcon = Args[4],
             Callback = Callback,
         })
     end
@@ -603,7 +663,6 @@ Module:NewModule("Plugins", function()
         self.Fallback[ Flag ] = Section:Toggle({
             Title = Args[1],
             Footer = Args[2],
-            Icon = Args[3],
             Value = Settings[Flag],
             Callback = function(Value)
                 Settings[ Flag ] = Value
@@ -626,7 +685,6 @@ Module:NewModule("Plugins", function()
         return Section:Slider({
             Title = Args[1],
             Footer = Args[2],
-            Icon = Args[3],
             Min = Values[1],
             Max = Values[2],
             Rounding = Values[3],
@@ -641,7 +699,6 @@ Module:NewModule("Plugins", function()
     function Plugins:Dropdown(Section, Args, List, Flag, Callback, OnRefresh)
         return Section:Dropdown({
             Title = Args[1],
-            Icon = Args[2],
             Value = Settings[Flag],
             List = List,
             OnRefresh = OnRefresh,
@@ -656,7 +713,6 @@ Module:NewModule("Plugins", function()
         return Section:Textbox({
             Title = Args[1],
             Footer = Args[2],
-            Icon = Args[3],
             Value = Settings[Flag],
             Callback = function(Value)
                 Settings[Flag] = Value
@@ -667,18 +723,16 @@ Module:NewModule("Plugins", function()
     
     function Plugins:Community()
         local Managers = self:MakeTab({
-            Plugins.Add("Contact", "ติดต่อ"),
-            Plugins.Add("Our contact link", "ช่องทางการติดต่อพวกเรา"),
+			Plugins.Add("Contact", "ติดต่อ"),
+			Color3.fromRGB(255, 255, 255),
             86131768436965
         }) do
             Managers:Section(Plugins.Add("Contact", "ช่องทางการติดต่อ")) do
                 Plugins:Button(Managers, {
                     Plugins.Add("Discord", "ดิสคอร์ด"),
                     Plugins.Add("Copy invite link.", "คัดลอกลิ้งเข้าร่วมดิสคอร์ด"),
-                    86131768436965,
-                    78664150174274
                 }, function()
-                    pcall(Cached.setclipboard, "https://discord.gg/AbqZPTfr9P")
+					pcall(Cached.setclipboard, "https://discord.gg/kCpfH3TKaR")
                 end)
             end
             
@@ -688,15 +742,14 @@ Module:NewModule("Plugins", function()
 
     function Plugins:Managers()
         local Managers = self:MakeTab({
-            Plugins.Add("Managers", "จัดการ"),
-            Plugins.Add("Extension", "ส่วนขยาย"),
+			Plugins.Add("Managers", "จัดการ"),
+			Color3.fromRGB(255, 255, 255),
             127866486547434
         }) do
             Managers:Section(Plugins.Add("Developing", "การพัฒนา")) do
                 Plugins:Button(Managers, {
                     Plugins.Add("Copy Errors", "คัดลอกข้อผิดพลาด"),
                     Plugins.Add("Copy all errors that have occurred.", "คัดลอกข้อผิดพลาดทั้งหมดที่เกิดขึ้นภายในสคริปต์"),
-                    109066688101101
                 }, function()
                     pcall(Cached.setclipboard, Module:TableToString(Errors))
                 end)
@@ -704,13 +757,8 @@ Module:NewModule("Plugins", function()
                 Plugins:Button(Managers, {
                     Plugins.Add("Remove Workspace", "ลบไฟล์ตั้งค่า"),
                     Plugins.Add("Reset save setting file to default value.", "รีเซ็ตไฟล์การตั้งค่าเป็นค่าเริ่มต้น"),
-                    107551117550330
                 }, function()
-                    local Json = Configable.Json
-
-                    if Json and Cached.isfile(Json) then
-                        pcall(Cached.delfile, Json)
-                    end
+					if isfolder('Novel.gg') then pcall(delfolder, 'Novel.gg') end
                 end)
             end
             
@@ -718,7 +766,6 @@ Module:NewModule("Plugins", function()
                 Plugins:Toggle(Managers, {
                     Plugins.Add("Rexecute", "ออโต้รันสคริปต์"),
                     Plugins.Add("Auto execute script when you hopping or rejoin server.", "ออโต้รันสคริปต์ตอนย้ายหรือรีจอยน์เซิร์ฟเวอร์"),
-                    108438517119798
                 }, "Rexecute", function(value)
                     if value then
                         pcall(queue_on_teleport, Module.Loader)
@@ -734,13 +781,11 @@ Module:NewModule("Plugins", function()
                 Plugins:Textbox(Managers, { 
                     Plugins.Add("JobId", "ไอดีเซิร์ฟเวอร์"),
                     Plugins.Add("Put the job id.", "ระบุไอดีเซิร์ฟเวอร์"),
-                    94614469252449
                 }, 'JobId')
 
                 Plugins:Button(Managers, {
                     Plugins.Add("Join", "เข้าร่วม"),
                     Plugins.Add("Connect to the server using the provided JobId.", "เชื่อมต่อไปยังเซิร์ฟเวอร์ด้วยไอดีเซิร์ฟเวอร์ที่ระบุ"),
-                    73012719459961
                 }, function()
                     EachOthers:Join(Settings.JobId)
                 end)
@@ -748,7 +793,6 @@ Module:NewModule("Plugins", function()
                 Plugins:Button(Managers, {
                     Plugins.Add("Change", "เปลี่ยนเซิร์ฟเวอร์"),
                     Plugins.Add("Teleport to a different public server instance.", "เทเลพอร์ตไปยังเซิร์ฟเวอร์สาธารณะอื่น"),
-                    101711387260955
                 }, function()
                     EachOthers:Change()
                 end)
@@ -756,7 +800,6 @@ Module:NewModule("Plugins", function()
                 Plugins:Button(Managers, {
                     Plugins.Add("Rejoin", "รีจอยน์"),
                     Plugins.Add("Reconnect to the current server instance.", "เชื่อมต่อกลับไปยังเซิร์ฟเวอร์ปัจจุบัน"),
-                    103006780441917
                 }, function()
                     EachOthers:Rejoin()
                 end)
@@ -764,7 +807,6 @@ Module:NewModule("Plugins", function()
                 Plugins:Button(Managers, {
                     Plugins.Add("Copy JobId", "คัดลอกไอดีเซิร์ฟเวอร์"),
                     Plugins.Add("Copy the current server JobId.", "คัดลอกไอดีเซิร์ฟเวอร์ปัจจุบัน"),
-                    90432969741774
                 }, function()
                     pcall(setclipboard, JobId)
                 end)
@@ -774,7 +816,6 @@ Module:NewModule("Plugins", function()
                 Plugins:Toggle(Managers, {
                     Plugins.Add("White Screen", "หน้าจอขาว"),
                     Plugins.Add("Disabled 3D Rendering to improve performance.", "ปิดการเรนเดอร์เพื่อเพิ่มประสิทธิภาพ"),
-                    121685614490746
                 }, "White Screen", function(value)
                     EachOthers:Set3d(value)
                 end)
@@ -782,7 +823,6 @@ Module:NewModule("Plugins", function()
                 Plugins:Button(Managers, { 
                     Plugins.Add("Fast Mode", "โหมดเร็ว"),
                     Plugins.Add("Set graphics quality to low.", "ตั้งค่าคุณภาพกราฟิกเป็นต่ำ"),
-                    137527339160230
                 }, function()
                     EachOthers:Low()
                 end)
@@ -791,7 +831,6 @@ Module:NewModule("Plugins", function()
             Managers:Section(Plugins.Add("Language", "ภาษา")) do
                 Plugins:Dropdown(Managers, {
                     Plugins.Add("Select Language", "เลือกภาษา"),
-                    130065428637597
                 }, {
                     "English", "ภาษาไทย"
                 },"Select Laugage")
@@ -799,12 +838,13 @@ Module:NewModule("Plugins", function()
                 Plugins:Button(Managers,{
                     Plugins.Add("Change Language", "เปลี่ยนภาษา"),
                     Plugins.Add("Apply language and rejoin server.","บันทึกภาษาและเข้าร่วมเซิร์ฟเวอร์ใหม่"),
-                    118359795316087
                 }, function()
                     EachOthers:Rejoin()
                 end)
             end
-        end
+		end
+		
+		return self.Library:Load()
     end
 
     return Plugins
