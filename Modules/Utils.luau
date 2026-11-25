@@ -754,7 +754,8 @@ Module:NewModule("Plugins", function()
 			Plugins.Add("Contact", "ติดต่อ"),
 			Color3.fromRGB(255, 255, 255),
             86131768436965
-        }) do
+		}) do
+			Managers:Banner()
             Managers:Section(Plugins.Add("Contact", "ช่องทางการติดต่อ")) do
                 Plugins:Button(Managers, {
                     Plugins.Add("Discord", "ดิสคอร์ด"),
@@ -763,8 +764,6 @@ Module:NewModule("Plugins", function()
 					pcall(Cached.setclipboard, "https://discord.gg/kCpfH3TKaR")
                 end)
             end
-            
-            Managers:Banner()
 		end
 		
 		Managers.__Select()
