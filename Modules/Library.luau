@@ -519,7 +519,7 @@ function Module:Window(Args)
 
 		local Background = Module.New("Frame", {
 			AnchorPoint = Vector2.new(0.5, 0.5),
-			BackgroundColor3 = Color3.fromRGB(22, 22, 22),
+			BackgroundColor3 = Color3.fromRGB(15, 15, 15),
 			Name = "Background",
 			Parent = Squircle,
 			Position = UDim2.new(0.5, 0, 0.5, 0),
