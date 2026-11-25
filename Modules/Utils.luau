@@ -767,7 +767,7 @@ Module:NewModule("Plugins", function()
             Managers:Banner()
 		end
 		
-		Managers:Select()
+		Managers.__Select()
     end
 
     function Plugins:Managers()
