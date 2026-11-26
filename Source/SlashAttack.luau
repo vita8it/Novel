@@ -1,8 +1,3 @@
---[[
-    titan_farm.luau -- auto-farm: move to nearest Titan's Nape in small
-    steps (to stay under server speed checks), slash every 1s, reload blades,
-    and force every hit to register as Nape.
-]]
 
 local STEP = 400      -- studs per frame (instant warp)
 local REACH = 10      -- start slashing within this distance
@@ -113,6 +108,7 @@ run_on_actor(actor, string.format([[
 
     task.spawn(function()
         while getgenv().__FARM_ON do
+        	game:GetService('VirtualInputManager'):SendMouseButtonEvent(1, 1, 0, true, game, 0)
             local chNow = game.Players.LocalPlayer.Character
             local rootNow = chNow and chNow.PrimaryPart
             local hbNow = chNow and chNow:FindFirstChild("Hitbox")
@@ -198,7 +194,7 @@ run_on_actor(actor, string.format([[
 ]], tostring(STEP), tostring(REACH)))
 
 function stopFarm()
-    run_on_actor(actor, [[
+	run_on_actor(actor, [[
         getgenv().__FARM_ON = false
         game.Workspace:SetAttribute("__FARM", "stopped")
     ]])
